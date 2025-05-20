@@ -12,12 +12,18 @@ import diaryPostSample from './screens/diaryPostSample';
 import DiaryModifyScreen from './screens/DiaryModify_screen';
 import RecapScreen from './screens/recap_screen';
 
+import DiaryResultScreen from './screens/DiaryResultScreen';
+import DiaryWriteScreen from './screens/DiaryWriteScreen';
+import SettingsScreen from './screens/SettingsScreen';
+
+
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="LoginScreen">
+      <Stack.Navigator initialRouteName="LoginScreen">  
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
@@ -57,6 +63,22 @@ export default function App() {
           name="RecapScreen"
           component={RecapScreen}
           options={{ headerShown: false }} 
+        />
+        
+        <Stack.Screen
+          name="DiaryWrite"
+          component={DiaryWriteScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DiaryResult"
+          component={DiaryResultScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

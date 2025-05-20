@@ -277,7 +277,10 @@ export default function MainHome({ route }) {
               <Text style={styles.bottomLabel}>감정통계</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.bottomItem}>
+            <TouchableOpacity
+              style={styles.bottomItem}
+              onPress={() => navigation.navigate('Settings')}
+            >
               <Image source={settingsIcon} style={styles.bottomIcon} />
               <Text style={styles.bottomLabel}>설정</Text>
             </TouchableOpacity>

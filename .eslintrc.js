@@ -18,7 +18,8 @@ module.exports = {
     },
     plugins: ['react'],
     rules: {
-      // 예: 세미콜론 필수
+      "react/react-in-jsx-scope": "off",
+
       semi: ['error', 'always'],
     },
   };
