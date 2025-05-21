@@ -13,7 +13,16 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs access to the microphone to record audio for your diary entries."
+      }
+    },
+    "android": {
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,5 +33,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     }
-  }
+    
 }
+

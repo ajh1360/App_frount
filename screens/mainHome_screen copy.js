@@ -21,23 +21,12 @@ export default function MainHome({ route }) {
   const [diaryDetailMap, setDiaryDetailMap] = useState({});
 
   useEffect(() => {
-    // This effect is for when navigating back to MainHome with a specific date selected
-    // e.g., from a notification or after creating a diary for a past date.
-    if (route.params?.selectedDate && route.params.selectedDate !== selectedDate) {
-        const newSelectedDate = route.params.selectedDate;
-        setSelectedDate(newSelectedDate);
-        const parsedDate = dayjs(newSelectedDate);
-        // Only change month if the selectedDate is in a different month than current
-        if (!parsedDate.isSame(currentDate, 'month')) {
-            setCurrentDate(parsedDate.startOf('month'));
-        } else {
-            // If it's the same month, just fetch for the current month again
-            // This ensures diaryData is up-to-date if a new diary was just added
-            fetchDiaryListFor(currentDate);
-        }
+    if (route.params?.selectedDate) {
+      setSelectedDate(route.params.selectedDate);
+      const parsed = dayjs(route.params.selectedDate);
+      setCurrentDate(parsed);
     }
   }, [route.params?.selectedDate]);
-
 
   const fetchDiaryListFor = async (targetDate) => {
     try {
@@ -52,28 +41,43 @@ export default function MainHome({ route }) {
       const data = await res.json();
       setDiaryData(data.diaries || []);
     } catch (err) {
-      console.error('❌ diary list (fetch for target) error:', err.message);
+      console.error('❌ diary list (forced) error:', err.message);
     }
   };
 
-  // useEffect to fetch diary list when currentDate changes (e.g., month change)
   useEffect(() => {
-    fetchDiaryListFor(currentDate);
-  }, [currentDate, accessToken]); // Added accessToken dependency
-
-  // useEffect to fetch detail if selectedDate changes and a diary exists for it
-   useEffect(() => {
-    if (selectedDate) {
-      const diaryEntry = getDiaryByDate(selectedDate);
-      if (diaryEntry && !diaryDetailMap[diaryEntry.diaryId]) {
-        fetchDiaryDetail(diaryEntry.diaryId);
-      }
+    if (route.params?.selectedDate) {
+      const parsed = dayjs(route.params.selectedDate);
+      fetchDiaryListFor(parsed);
     }
-  }, [selectedDate, diaryData]); // diaryData is important here
+  }, [route.params?.selectedDate]);
 
+  useEffect(() => {
+    if (route.params?.selectedDate) {
+      const found = diaryData.find(d => d.writtenDate === route.params.selectedDate);
+      if (found) fetchDiaryDetail(found.diaryId);
+    }
+  }, [diaryData, route.params?.selectedDate]);
+
+  const fetchDiaryList = async () => {
+    try {
+      const res = await fetch(
+        `http://ceprj.gachon.ac.kr:60021/api/diaries?year=${currentDate.year()}&month=${currentDate.month() + 1}`,
+        {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      ); 
+      if (!res.ok) throw new Error('일기 목록 가져오기 실패');
+      const data = await res.json();
+      setDiaryData(data.diaries || []);
+    } catch (err) {
+      console.error('❌ diary list error:', err.message);
+    }
+  };
 
   const fetchDiaryDetail = async (diaryId) => {
-    if (diaryDetailMap[diaryId]) return; // Avoid re-fetching if already present
+    if (diaryDetailMap[diaryId]) return;
     try {
       const res = await fetch(
         `http://ceprj.gachon.ac.kr:60021/api/diaries/${diaryId}`,
@@ -82,7 +86,7 @@ export default function MainHome({ route }) {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
-      if (!res.ok) throw new Error(`일기 상세 실패 (ID: ${diaryId})`);
+      if (!res.ok) throw new Error('일기 상세 실패');
       const data = await res.json();
       setDiaryDetailMap((prev) => ({ ...prev, [diaryId]: data }));
     } catch (err) {
@@ -90,12 +94,15 @@ export default function MainHome({ route }) {
     }
   };
 
+  useEffect(() => {
+    fetchDiaryList();
+  }, [currentDate]);
 
   const changeMonth = (offset) => {
-    setCurrentDate(prevDate => prevDate.add(offset, 'month').startOf('month'));
-    setSelectedDate(null); // Clear selected date when month changes
-    // setDiaryData([]); // Let fetchDiaryListFor handle data update via useEffect on currentDate
-    setDiaryDetailMap({}); // Clear details for the new month
+    setCurrentDate(currentDate.add(offset, 'month'));
+    setSelectedDate(null);
+    setDiaryData([]);
+    setDiaryDetailMap({});
   };
 
   const getDiaryByDate = (dateStr) =>
@@ -103,46 +110,26 @@ export default function MainHome({ route }) {
 
   const startOfMonth = currentDate.startOf('month');
   const daysInMonth = currentDate.daysInMonth();
-  const startDayOfWeek = startOfMonth.day(); // 0 (Sun) to 6 (Sat)
+  const startDayOfWeek = startOfMonth.day();
 
-  const calendarDays = [];
-  // Add blank cells for days before the start of the month
-  for (let i = 0; i < startDayOfWeek; i++) {
-    calendarDays.push(null);
-  }
-  // Add actual day cells
-  for (let i = 1; i <= daysInMonth; i++) {
-    calendarDays.push(currentDate.date(i));
-  }
+  const calendarDays = Array.from({ length: startDayOfWeek }, () => null)
+    .concat(Array.from({ length: daysInMonth }, (_, i) => currentDate.date(i + 1)));
 
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('accessToken');
       navigation.reset({
         index: 0,
-        routes: [{ name: 'Login' }], // Ensure 'Login' screen is defined in your navigator
+        routes: [{ name: 'Login' }],
       });
     } catch (error) {
       console.error('❌ 로그아웃 실패:', error);
     }
   };
 
-  // Effect to listen for focus event to refresh data if needed
-  // This is useful if a diary is added/updated and we navigate back to MainHome
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // Refetch the diary list for the current month when the screen comes into focus
-      // This helps if a diary was added in DiaryWriteScreen and then navigated back.
-      // If route.params.selectedDate is set, the other useEffect will handle specific date logic.
-      // Otherwise, just refresh the current month's view.
-      if (!route.params?.selectedDate) {
-          fetchDiaryListFor(currentDate);
-      }
-    });
-    return unsubscribe;
-  }, [navigation, currentDate, route.params?.selectedDate]);
 
 
+  
   return (
     <TouchableWithoutFeedback onPress={() => { setSelectedDate(null); Keyboard.dismiss(); }}>
       <View style={{ flex: 1 }}>
@@ -153,13 +140,9 @@ export default function MainHome({ route }) {
           </View>
 
           <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => changeMonth(-1)}>
-                <Text style={styles.dropdownIcon}>{'<'}</Text>
-            </TouchableOpacity>
+            <Text style={styles.dropdownIcon} onPress={() => changeMonth(-1)}>{'<'}</Text>
             <Text style={styles.dateText}>{currentDate.format('YYYY년 M월')}</Text>
-            <TouchableOpacity onPress={() => changeMonth(1)}>
-                <Text style={styles.dropdownIcon}>{'>'}</Text>
-            </TouchableOpacity>
+            <Text style={styles.dropdownIcon} onPress={() => changeMonth(1)}>{'>'}</Text>
           </View>
 
           <View style={styles.calendarContainer} pointerEvents="box-none">
@@ -171,7 +154,7 @@ export default function MainHome({ route }) {
 
             <View style={styles.daysContainer}>
               {calendarDays.map((date, idx) => {
-                if (!date) return <View key={`empty-${idx}`} style={styles.dayWrapper} />;
+                if (!date) return <View key={idx} style={styles.dayWrapper} />;
 
                 const dateStr = date.format('YYYY-MM-DD');
                 const diary = getDiaryByDate(dateStr);
@@ -181,21 +164,15 @@ export default function MainHome({ route }) {
 
                 return (
                   <TouchableOpacity
-                    key={dateStr} // Use dateStr for a more stable key
-                    style={[
-                        styles.dayWrapper,
-                        selectedDate === dateStr ? styles.selectedDayWrapper : {}
-                    ]}
+                    key={idx}
+                    style={styles.dayWrapper}
                     onPress={() => {
                       setSelectedDate(dateStr);
-                      // fetchDiaryDetail will be called by useEffect based on selectedDate change
+                      if (diary) fetchDiaryDetail(diary.diaryId);
                     }}
-                    activeOpacity={0.7}
+                    activeOpacity={1}
                   >
-                    <Text style={[
-                        styles.dayText,
-                        date.isSame(dayjs(), 'day') ? styles.todayText : {}
-                    ]}>{date.date()}</Text>
+                    <Text style={styles.dayText}>{date.date()}</Text>
                     <View style={styles.iconCircle}>
                       <Image source={icon} style={styles.dayIcon} resizeMode="cover" />
                     </View>
@@ -218,7 +195,7 @@ export default function MainHome({ route }) {
                       source={emotionImage(getDiaryByDate(selectedDate)?.emotionType)}
                       style={styles.emotionIcon}
                     />
-                    <View style={{ marginLeft: 12, flex: 1 }}>
+                    <View style={{ marginLeft: 12 }}>
                       <Text style={styles.diaryDate}>
                         {dayjs(selectedDate).format('YY.MM.DD')}
                       </Text>
@@ -229,7 +206,7 @@ export default function MainHome({ route }) {
                   </>
                 ) : (
                   <>
-                    <View style={{flex:1}}>
+                    <View>
                       <Text style={styles.diaryDate}>{dayjs(selectedDate).format('YY.MM.DD')}</Text>
                       <Text style={styles.emotionTag}>작성되지 않음</Text>
                     </View>
@@ -243,13 +220,12 @@ export default function MainHome({ route }) {
 
               {getDiaryByDate(selectedDate) ? (
                 <>
-                  <Text style={styles.diaryContent} numberOfLines={2} ellipsizeMode="tail">
+                  <Text style={styles.diaryContent}>
                     {(() => {
                       const diary = getDiaryByDate(selectedDate);
-                      const fullDetail = diaryDetailMap[diary?.diaryId]; // Use optional chaining
-                      // Prefer full detail content if available, otherwise summary
-                      const content = fullDetail?.transformContent || diary?.summary || '내용을 불러오는 중...';
-                      return content; // Let Text numberOfLines handle truncation
+                      const full = diaryDetailMap[diary.diaryId];
+                      const content = full?.transformContent ?? '';
+                      return content.length > 60 ? content.slice(0, 60) + '...' : content;
                     })()}
                   </Text>
                   <TouchableOpacity
@@ -257,7 +233,7 @@ export default function MainHome({ route }) {
                     onPress={() => {
                       const diary = getDiaryByDate(selectedDate);
                       if (diary) {
-                        navigation.navigate('WrittenDiary', { // Ensure 'WrittenDiary' screen is defined
+                        navigation.navigate('WrittenDiary', {
                           diaryId: diary.diaryId,
                           accessToken: accessToken
                         });
@@ -273,8 +249,8 @@ export default function MainHome({ route }) {
                   <TouchableOpacity
                     style={styles.diaryButton}
                     onPress={() => {
-                      navigation.navigate('DiaryWriteScreen', {
-                        selectedDate: selectedDate, // Pass the selected date (YYYY-MM-DD)
+                      navigation.navigate('diaryPostSample', {
+                        selectedDate: selectedDate,
                         accessToken: accessToken
                       });
                     }}
@@ -286,7 +262,7 @@ export default function MainHome({ route }) {
             </View>
           )}
 
-          {/* 하단 네비게이션 바 */}
+          {/* ✅ 하단 네비게이션 바 */}
           <View style={styles.bottomBar}>
             <TouchableOpacity style={styles.bottomItem} onPress={handleLogout}>
               <Image source={logoutIcon} style={styles.bottomIcon} />
@@ -295,7 +271,7 @@ export default function MainHome({ route }) {
 
             <TouchableOpacity
               style={styles.bottomItem}
-              onPress={() => navigation.navigate('RecapScreen', { accessToken })} // Ensure 'RecapScreen' is defined
+              onPress={() => navigation.navigate('RecapScreen', { accessToken })}
             >
               <Image source={recapIcon} style={styles.bottomIcon} />
               <Text style={styles.bottomLabel}>감정통계</Text>
@@ -303,7 +279,7 @@ export default function MainHome({ route }) {
 
             <TouchableOpacity
               style={styles.bottomItem}
-              onPress={() => navigation.navigate('Settings')} // Ensure 'Settings' screen is defined
+              onPress={() => navigation.navigate('Settings')}
             >
               <Image source={settingsIcon} style={styles.bottomIcon} />
               <Text style={styles.bottomLabel}>설정</Text>

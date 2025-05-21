@@ -7,27 +7,24 @@ import SplashScreen from './screens/splash_screen';
 import MainHomeScreen from './screens/mainHome_screen';
 import WrittenDiaryDetailScreen from './screens/writtenDiaryNFeedback_screen';
 import DiaryConfirmScreen from './screens/DiaryConfirm_screen';
-import StartScreen from './screens/StartScreen'; // Import the new StartScreen
-import LoginScreen from './screens/Login';
-import SignUpScreen from './screens/SignUpScreen';
+import LoginScreen from './screens/Login'; // 기존 Login 스크린 경로
+import SignUpScreen from './screens/SignUpScreen'; // 새로 추가된 SignUp 스크린 경로
 import diaryPostSample from './screens/diaryPostSample';
 import DiaryModifyScreen from './screens/DiaryModify_screen';
 import RecapScreen from './screens/recap_screen';
 import DiaryWriteScreen from './screens/DiaryWriteScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
+
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      {/* Set StartScreen as the initial route */}
-      <Stack.Navigator initialRouteName="Start">
-        <Stack.Screen
-          name="Start" // Screen name for StartScreen
-          component={StartScreen}
-          options={{ headerShown: false }}
-        />
+      {/* LoginScreen에서 SignUp으로 이동하므로 initialRouteName은 LoginScreen 또는 Splash가 적절합니다. */}
+      {/* 현재 LoginScreen으로 되어 있으니 그대로 유지합니다. */}
+      <Stack.Navigator initialRouteName="LoginScreen">
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
@@ -49,12 +46,13 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Login" // Changed from "LoginScreen" to "Login" to match StartScreen's navigation
+          name="LoginScreen" // Login.js에서 navigation.navigate('SignUp')으로 호출할 때 사용할 이름
           component={LoginScreen}
           options={{ headerShown: false }}
         />
+        {/* SignUpScreen 추가 */}
         <Stack.Screen
-          name="SignUp" // Name used by StartScreen to navigate
+          name="SignUp" // Login.js에서 navigation.navigate('SignUp')으로 호출할 때 사용할 이름
           component={SignUpScreen}
           options={{ headerShown: false }}
         />
@@ -73,6 +71,7 @@ export default function App() {
           component={RecapScreen}
           options={{ headerShown: false }}
         />
+
         <Stack.Screen
           name="DiaryWriteScreen"
           component={DiaryWriteScreen}
@@ -87,3 +86,13 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
+// StyleSheet는 특별히 변경할 내용이 없으므로 그대로 둡니다.
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: '#fff',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+// });

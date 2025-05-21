@@ -90,52 +90,12 @@ export default function DiaryWriteScreen() {
   };
 
   const handleSubmit = async () => {
-  if (!recordedURI && !content) {
+  if (recordedURI || content) {
+    Alert.alert("등록 완료", "일기가 등록되었습니다. (저장 로직 필요)");
+  } else {
     Alert.alert("내용 없음", "작성된 내용이나 음성이 없습니다.");
-    return;
-  }
-
-  try {
-    const accessToken = "your_actual_token_here"; // 실제 로그인 후 받은 토큰
-    const selectedDate = dayjs().format("YYYY-MM-DD"); // 오늘 날짜 형식으로
-
-    const formData = new FormData();
-    formData.append('writtenDate', selectedDate);
-    if (content) formData.append('content', content);
-    if (recordedURI) {
-      const uriParts = recordedURI.split('/');
-      const fileName = uriParts[uriParts.length - 1];
-      formData.append('voiceFile', {
-        uri: recordedURI,
-        name: fileName,
-        type: 'audio/x-wav', // 서버에서 요구하는 타입 확인 필요
-      });
-    }
-
-    const res = await fetch('http://ceprj.gachon.ac.kr:60021/api/diaries', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'multipart/form-data',
-      },
-      body: formData,
-    });
-
-    if (!res.ok) throw new Error('일기 등록 실패');
-
-    const data = await res.json();
-    const { diaryId } = data;
-
-    navigation.navigate('DiaryConfirm', {
-      diaryId,
-      accessToken,
-    });
-  } catch (err) {
-    console.error('❌ 등록 실패:', err.message);
-    Alert.alert('등록 실패', '일기 등록 중 오류가 발생했습니다.');
   }
 };
-
 
   return (
     <SafeAreaView style={styles.safeArea}>
