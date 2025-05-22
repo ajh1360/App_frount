@@ -15,8 +15,6 @@ SignUpScreen.propTypes = {
     }).isRequired,
 };
 
-const DUMMY_TAKEN_EMAILS = ['test@example.com', 'user@taken.com', 'another@duplicate.com'];
-
 export default function SignUpScreen({ navigation }) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -82,6 +80,20 @@ export default function SignUpScreen({ navigation }) {
     // };
 
 
+    const handleEmailCheck = async () => {
+  try {
+    const res = await axios.get(`http://서버주소/api/check-email?email=${email}`);
+    if (res.data.available) {
+      Alert.alert("사용 가능한 이메일입니다.");
+    } else {
+      Alert.alert("이미 사용 중인 이메일입니다.");
+    }
+  } catch (error) {
+    console.error(error);
+    Alert.alert("오류", "이메일 확인 중 오류 발생");
+  }
+};
+
 
 
     const handleSignUp = async () => {
@@ -116,7 +128,7 @@ export default function SignUpScreen({ navigation }) {
         }
 
         try {
-            const res = await axios.post('http://ceprj.gachon.ac.kr:60021/api/members/join', {
+            const res = await axios.post('http://ceprj.gachon.ac.kr:60021/api/members', {
                 nickname: name,
                 email,
                 password,
@@ -184,9 +196,9 @@ export default function SignUpScreen({ navigation }) {
                             onPress={handleEmailCheck}
                             disabled={isCheckingEmail}
                         >
-                            {/* <Text style={styles.checkButtonText}>
+                            <Text style={styles.checkButtonText}>
                                 {isCheckingEmail ? '확인 중...' : '확인'}
-                            </Text> */}
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>

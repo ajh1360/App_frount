@@ -21,33 +21,39 @@ export default function LoginScreen({ navigation }) {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
-    // const handleLogin = async () => {
-    //     try {
-    //         const res = await fetch('http://ceprj.gachon.ac.kr:60021/api/auth/login', {
-    //             method: 'POST',
-    //             headers: { 'Content-Type': 'application/json' },
-    //             body: JSON.stringify({ email, password }),
-    //         });
+    const handleLogin = async () => {
+        try {
+            const res = await fetch('http://ceprj.gachon.ac.kr:60021/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
 
-    //         if (!res.ok) throw new Error(`Login failed: ${res.status}`);
+            if (!res.ok) throw new Error('Login failed: ${res.status}');
 
-    //         const data = await res.json();
-    //         Alert.alert('로그인 성공');
-    //         navigation.replace('MainHome', { accessToken: data.accessToken });
-    //     } catch (err) {
-    //         Alert.alert('에러', err.message);
-    //     }
-    // };
+            const data = await res.json();
 
-    const handleLogin = () => {
-        if (email === '1234' && password === '1234') {
-            const fakeAccessToken = 'TEST_ACCESS_TOKEN'; // 임시 토큰
-            Alert.alert('로그인 성공 (테스트 계정)');
-            navigation.replace('MainHome', { accessToken: fakeAccessToken });
-        } else {
-            Alert.alert('에러', '아이디 또는 비밀번호가 잘못되었습니다.\n테스트 계정: 1234 / 1234');
+            // ✅ 토큰 저장
+            await AsyncStorage.setItem('accessToken', data.accessToken);
+
+            Alert.alert('로그인 성공');
+
+            // ✅ 홈 화면으로 이동
+            navigation.replace('MainHome', { accessToken: data.accessToken });
+        } catch (err) {
+            Alert.alert('에러', err.message);
         }
     };
+
+    // const handleLogin = () => {
+    //     if (email === '1234' && password === '1234') {
+    //         const fakeAccessToken = 'TEST_ACCESS_TOKEN'; // 임시 토큰
+    //         Alert.alert('로그인 성공 (테스트 계정)');
+    //         navigation.replace('MainHome', { accessToken: fakeAccessToken });
+    //     } else {
+    //         Alert.alert('에러', '아이디 또는 비밀번호가 잘못되었습니다.\n테스트 계정: 1234 / 1234');
+    //     }
+    // };
 
     // handleGoToSignUp function removed
 
