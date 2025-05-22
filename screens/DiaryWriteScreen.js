@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import {
+  SafeAreaView,
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Platform,
-  SafeAreaView,
   Alert,
-  Dimensions,
-  KeyboardAvoidingView,
-  StatusBar,
   ScrollView,
   Image,
+  Platform,
+  StatusBar,
+  Dimensions,
+  KeyboardAvoidingView,
+  StyleSheet,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import dayjs from 'dayjs';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Audio } from 'expo-av';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import dayjs from 'dayjs';
 
-import RecordingImage from '../assets/recode.png'; // 이미지 import
+import RecordingImage from '../assets/recode.png'; // Ensure this path is correct
 
-const { width } = Dimensions.get('window');
+const BASE_URL = 'http://ceprj.gachon.ac.kr:60021';
 
 const RECORDING_OPTIONS_M4A = {
   isMeteringEnabled: true,
@@ -45,10 +45,11 @@ const RECORDING_OPTIONS_M4A = {
 
 export default function DiaryWriteScreen() {
   const navigation = useNavigation();
-  const [content, setContent] = useState('');
-  const today = dayjs().format('YY.MM.DD');
+  const route = useRoute();
+  const { selectedDate, accessToken } = route.params;
 
-  const [recording, setRecording] = useState(undefined);
+  const [content, setContent] = useState('');
+  const [recording, setRecording] = useState();
   const [isRecording, setIsRecording] = useState(false);
   const [recordedURI, setRecordedURI] = useState(null);
   const [_permissionResponse, requestPermission] = Audio.usePermissions();
@@ -56,19 +57,19 @@ export default function DiaryWriteScreen() {
   useEffect(() => {
     return () => {
       if (recording) {
-        recording.stopAndUnloadAsync().catch(err => console.error('Error on unmount:', err));
+        recording.stopAndUnloadAsync().catch(console.error);
       }
-      Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(err => console.error(err));
+      Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(console.error);
     };
   }, [recording]);
 
-  async function startRecording() {
+  const startRecording = async () => {
     try {
-      let currentPermissions = await Audio.getPermissionsAsync();
-      if (currentPermissions.status !== 'granted') {
+      const { status } = await Audio.getPermissionsAsync();
+      if (status !== 'granted') {
         const permission = await requestPermission();
         if (permission.status !== 'granted') {
-          Alert.alert("Permission Denied", "Microphone permission is required to record audio.");
+          Alert.alert('권한 거부됨', '마이크 권한이 필요합니다.');
           return;
         }
       }
@@ -82,47 +83,58 @@ export default function DiaryWriteScreen() {
       setRecording(newRecording);
       setIsRecording(true);
       setRecordedURI(null);
+      setContent('');
     } catch (err) {
       console.error('Failed to start recording', err);
-      Alert.alert("Recording Error", err.message || err);
+      Alert.alert('녹음 시작 오류', err.message);
     }
-  }
+  };
 
-  async function stopRecording() {
-    setIsRecording(false);
+  const stopRecording = async () => {
     if (!recording) return;
-
     try {
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
       setRecordedURI(uri);
+      setRecording(undefined);
+      setIsRecording(false);
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-    } catch (error) {
-      console.error('Failed to stop recording', error);
-      Alert.alert("Recording Error", error.message || error);
-    }
-
-    setRecording(undefined);
-  }
-
-  const handleRecordButtonPress = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
+    } catch (err) {
+      console.error('Failed to stop recording', err);
+      Alert.alert('녹음 중지 오류', err.message);
     }
   };
 
-  const handleSubmit = async () => {
+  const handleRecordToggle = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      if (recordedURI) {
+        Alert.alert(
+          "녹음 변경",
+          "기존 녹음 내용이 삭제됩니다. 새로 녹음하시겠습니까?",
+          [
+            { text: "취소", style: "cancel" },
+            { text: "확인", onPress: startRecording }
+          ]
+        );
+      } else {
+        startRecording();
+      }
+    }
+  };
+
+  const handleDeleteRecording = () => {
+    setRecordedURI(null);
+  };
+
+  const submitDiary = async (isTemporary) => {
     if (!recordedURI && !content.trim()) {
-      Alert.alert("내용 없음", "작성된 내용이나 음성이 없습니다.");
+      Alert.alert('내용 없음', '텍스트 내용이나 음성 녹음이 필요합니다.');
       return;
     }
 
     try {
-      const accessToken = "your_actual_token_here";
-      const selectedDate = dayjs().format("YYYY-MM-DD");
-
       const formData = new FormData();
       formData.append('writtenDate', selectedDate);
       if (content.trim()) {
@@ -133,11 +145,11 @@ export default function DiaryWriteScreen() {
         formData.append('voiceFile', {
           uri: recordedURI,
           name: fileName,
-          type: 'audio/m4a',
+          type: Platform.OS === 'ios' ? 'audio/m4a' : 'audio/mp4',
         });
       }
 
-      const res = await fetch('http://ceprj.gachon.ac.kr:60021/api/diaries', {
+      const res = await fetch(`${BASE_URL}/api/diaries?temp=${isTemporary}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -146,90 +158,126 @@ export default function DiaryWriteScreen() {
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`일기 등록 실패 (Status: ${res.status})`);
+        const errorData = await res.text();
+        throw new Error(`${isTemporary ? '임시 저장' : '등록'} 실패: ${res.status} - ${errorData}`);
       }
 
       const data = await res.json();
-      const { diaryId } = data;
-
-      Alert.alert('등록 완료', '일기가 성공적으로 등록되었습니다.');
-      navigation.navigate('DiaryConfirm', { diaryId, accessToken });
+      Alert.alert(
+        isTemporary ? '임시 저장 완료' : '등록 완료',
+        `일기가 성공적으로 ${isTemporary ? '임시 저장' : '등록'}되었습니다.`
+      );
+      if (isTemporary) {
+        navigation.goBack(); // Or navigate to a drafts screen
+      } else {
+        navigation.navigate('DiaryConfirm', { diaryId: data.diaryId, accessToken });
+      }
     } catch (err) {
-      console.error('등록 실패:', err.message || err);
-      Alert.alert('등록 실패', err.message || '알 수 없는 오류');
+      console.error('Submit failed', err);
+      Alert.alert(isTemporary ? '임시 저장 실패' : '등록 실패', err.message);
     }
   };
 
+  const handleSubmit = () => submitDiary(false);
+  const handleTemporarySave = () => submitDiary(true);
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
-          <Ionicons name="chevron-back" size={28} color="#333" />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'default'} />
+
+      {/* Top Navigation: Back and Submit */}
+      <View style={styles.navHeaderRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
+          <Ionicons name="chevron-back" size={30} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.date}>{today}</Text>
-        <TouchableOpacity onPress={handleSubmit} style={styles.headerButton}>
-          <Text style={styles.submitTextHeader}>등록</Text>
+        <TouchableOpacity onPress={handleSubmit}>
+          <Text style={styles.submitText}>등록</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.contentWrapper}>
-        <KeyboardAvoidingView
-          style={styles.keyboardAvoiding}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-        >
-          <View style={styles.mainScrollableContent}>
-            <ScrollView
-              contentContainerStyle={styles.scrollContainer}
-              keyboardShouldPersistTaps="handled"
-            >
-              {isRecording ? (
-                <View style={styles.recordingIndicatorContainer}>
-                  <Image source={RecordingImage} style={styles.recordingImage} resizeMode="contain" />
-                </View>
-              ) : (
-                <TextInput
-                  style={styles.input}
-                  multiline
-                  placeholder="오늘은 무슨 일이 있었어?"
-                  placeholderTextColor="#B0B0B0"
-                  value={content}
-                  onChangeText={setContent}
-                  editable={!isRecording && !recordedURI}
-                  textAlignVertical="top"
-                  autoFocus
-                />
-              )}
-            </ScrollView>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+      >
+        <View style={styles.whiteBox}>
+          <View style={styles.navHeaderRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
+            <Ionicons name="chevron-back" size={28} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSubmit}>
+            <Text style={styles.submitText}>등록</Text>
+          </TouchableOpacity>
+        </View>
 
-            {recordedURI && !isRecording && (
-              <View style={styles.playbackContainer}>
-                <Text style={styles.playbackText}>녹음 완료: {recordedURI.split('/').pop()}</Text>
-                <TouchableOpacity onPress={() => setRecordedURI(null)}>
-                  <MaterialIcons name="delete" size={24} color="#F44336" style={{ marginLeft: 10 }} />
-                </TouchableOpacity>
+      <Text style={styles.dateDisplay}>
+        {dayjs(selectedDate).format('YY.MM.DD')}
+      </Text>
+  <View style={styles.divider} />
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 10 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Date Display
+            <Text style={styles.dateDisplay}>
+              {dayjs(selectedDate).format('YY.MM.DD')}
+            </Text>
+            <View style={styles.divider} /> */}
+
+            {isRecording ? (
+              <View style={styles.recordingContainer}>
+                <Image source={RecordingImage} style={styles.recordingImage} />
+                <Text style={styles.recordingStatusText}>편하게 음성작성</Text>
               </View>
+            ) : recordedURI ? (
+              <View style={styles.audioInfoContainer}>
+                 <View style={styles.audioInfo}>
+                    <MaterialIcons name="graphic-eq" size={24} color="#3C5741" style={{marginRight: 10}} />
+                    <Text style={styles.audioFileName} numberOfLines={1}>
+                      {recordedURI.split('/').pop()}
+                    </Text>
+                    <TouchableOpacity onPress={handleDeleteRecording}>
+                      <MaterialIcons name="delete" size={24} color="#D32F2F" />
+                    </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TextInput
+                style={styles.diaryTextInput}
+                multiline
+                placeholder="오늘은 무슨일이 있었어?"
+                value={content}
+                onChangeText={setContent}
+                editable={!isRecording && !recordedURI}
+              />
             )}
-          </View>
-        </KeyboardAvoidingView>
-      </View>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
 
-      <View style={styles.bottomBar}>
+      {/* Bottom Bar: Voice Record and Temporary Save */}
+      <View style={styles.bottomBarContainer}>
         <TouchableOpacity
-          style={[styles.voiceButton, isRecording && styles.voiceButtonRecording]}
-          onPress={handleRecordButtonPress}
-          disabled={!!recordedURI && !isRecording}
+          style={[
+            styles.bottomBarButton,
+            styles.voiceRecordButton,
+            isRecording ? styles.voiceRecordButtonRecording : (recordedURI ? styles.voiceRecordButtonChange : null)
+          ]}
+          onPress={handleRecordToggle}
         >
-          <MaterialIcons name={isRecording ? "stop-circle" : "mic"} size={20} color={isRecording ? "#FFFFFF" : "#4CAF50"} />
-          <Text style={[styles.voiceButtonText, isRecording && styles.voiceButtonTextRecording]}>
-            {isRecording ? '녹음 중지' : (recordedURI ? '녹음 변경' : '편하게 음성작성')}
+          <MaterialIcons
+            name={isRecording ? 'stop' : (recordedURI ? 'autorenew' : 'mic')}
+            size={20}
+            color={isRecording || recordedURI ? "white" : "#3C5741"}
+          />
+          <Text style={[styles.bottomBarButtonText, styles.voiceRecordButtonText, (isRecording || recordedURI) && {color: "white"}]}>
+            {isRecording ? '녹음 중지' : recordedURI ? '녹음 변경' : '음성으로 작성'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tempSaveButton}>
-          <Text style={styles.tempSaveButtonText}>임시저장</Text>
-          <MaterialIcons name="folder-open" size={20} color="#757575" />
+
+        <TouchableOpacity style={[styles.bottomBarButton, styles.tempSaveButton]} onPress={handleTemporarySave}>
+          <Text style={[styles.bottomBarButtonText, styles.tempSaveButtonText]}>임시저장</Text>
+          <MaterialIcons name="chevron-right" size={24} color="#8A8A8A" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -237,111 +285,144 @@ export default function DiaryWriteScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#EEF5EF' },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 30,
-    paddingBottom: 15,
-    paddingHorizontal: 20,
-    backgroundColor: '#EEF5EF',
-  },
-  headerButton: { padding: 8 },
-  date: { fontSize: 24, fontWeight: 'bold', color: '#222' },
-  submitTextHeader: { fontSize: 16, color: '#4CAF50', fontWeight: 'bold' },
-  contentWrapper: {
+  container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E6F0E7',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  navHeaderRow: {
+    flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 10,
+  },
+  navButton: {
+    padding: 5, // Increase touchable area
+  },
+  submitText: {
+    fontSize: 17,
+    fontWeight: '500',
+    color: '#3C5741',
+    padding: 5,
+  },
+  whiteBox: {
+    flex: 1,
+    backgroundColor: '#fff',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    overflow: 'hidden',
-  },
-  keyboardAvoiding: { flex: 1 },
-  mainScrollableContent: { flex: 1 },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+    marginTop: 5, // Reduced margin as date is now inside
+    marginHorizontal: 5,
+    paddingHorizontal: 25,
     paddingTop: 20,
+    paddingBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  input: {
-    fontSize: 17,
+  dateDisplay: {
+    fontSize: 26, // Slightly larger for emphasis
+    fontWeight: '600',
     color: '#333',
-    lineHeight: 24,
-    backgroundColor: '#FFFFFF',
-    textAlignVertical: 'top',
-    flexGrow: 1,
-    minHeight: Dimensions.get('window').height * 0.5,
+    marginBottom: 15, // Space before divider
+    marginTop: 10,   // Space after top of whiteBox
   },
-  recordingIndicatorContainer: {
+  divider: {
+    height: 1,
+    backgroundColor: '#E0E0E0',
+    marginVertical: 15,
+  },
+  diaryTextInput: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333',
+    textAlignVertical: 'top',
+    minHeight: 200,
+    marginTop: 10,
+  },
+  recordingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    minHeight: Dimensions.get('window').height * 0.5,
+    minHeight: 200,
+    paddingVertical: 20,
   },
   recordingImage: {
-    width: width * 0.6,
-    height: width * 0.6,
+    width: 100, // Adjusted size
+    height: 100,
+    resizeMode: 'contain',
   },
-  playbackContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    marginHorizontal: 20,
+  recordingStatusText: {
+    color: '#F44336',
+    marginTop: 15,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  audioInfoContainer: {
+    flex: 1,
+    minHeight: 200,
+    justifyContent: 'center',
     marginTop: 10,
-    marginBottom: 10,
   },
-  playbackText: {
+  audioInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  audioFileName: {
+    flex: 1,
     fontSize: 14,
     color: '#333',
-    flex: 1,
+    marginHorizontal: 10,
   },
-  bottomBar: {
+  // --- Bottom Bar Styles ---
+  bottomBarContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: Platform.OS === 'ios' ? 20 : 15, // More padding for iOS home indicator
     paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: Platform.OS === 'ios' ? 35 : 15,
+    backgroundColor: '#F7F7F7', // Light grey background for the bar
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    backgroundColor: '#F9F9F9',
+    borderTopColor: '#DCDCDC',
+    paddingBottom: Platform.OS === 'ios' ? 30 : 15, // Extra padding for iOS home indicator
   },
-  voiceButton: {
+  bottomBarButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
     paddingVertical: 10,
     paddingHorizontal: 15,
-    borderRadius: 25,
+    borderRadius: 20, // Pill shape
   },
-  voiceButtonRecording: {
-    backgroundColor: '#F44336',
-  },
-  voiceButtonText: {
-    marginLeft: 8,
+  bottomBarButtonText: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#4CAF50',
+    fontWeight: '500',
+    marginLeft: 8,
   },
-  voiceButtonTextRecording: {
-    color: '#FFFFFF',
+  voiceRecordButton: {
+    backgroundColor: '#E8F0E9', // Light greenish-grey, similar to 일기작성.png
+  },
+  voiceRecordButtonRecording: { // When "Stop" button
+    backgroundColor: '#D32F2F', // Red for stop
+  },
+  voiceRecordButtonChange: { // When "녹음 변경" button
+    backgroundColor: '#FFA000', // Amber for change
+  },
+  voiceRecordButtonText: {
+    color: '#3C5741', // Dark green text
   },
   tempSaveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    backgroundColor: 'transparent', // No background for this button style
   },
   tempSaveButtonText: {
-    marginRight: 5,
-    fontSize: 15,
-    color: '#757575',
+    color: '#555555', // Greyish text
+    marginRight: 2,
   },
 });
