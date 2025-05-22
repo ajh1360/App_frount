@@ -8,6 +8,8 @@ import PropTypes from 'prop-types';
 SignUpScreen.propTypes = {
     navigation: PropTypes.shape({
         goBack: PropTypes.func.isRequired,
+        navigate: PropTypes.func.isRequired, // Added for clarity, though reset is used
+        reset: PropTypes.func.isRequired,    // Added for clarity
     }).isRequired,
 };
 
@@ -53,8 +55,32 @@ export default function SignUpScreen({ navigation }) {
         }
 
         // TODO: 실제 회원가입 API 호출 로직 구현
-        Alert.alert('회원가입 시도', `이름: ${name}\n이메일: ${email}\n전화번호: ${phoneNumber}\n생년월일: ${birthDate}`);
-        // 성공 시 navigation.navigate('Login') 또는 다른 화면으로 이동
+        // For now, simulate successful signup and navigation
+        console.log('Simulating successful signup:', { name, email, phoneNumber, birthDate });
+        
+        // In a real app, you would get an accessToken from the server response here.
+        const dummyAccessToken = 'simulated_token_after_signup';
+
+        Alert.alert(
+            '회원가입 완료',
+            '성공적으로 가입되었습니다! 메인 화면으로 이동합니다.',
+            [
+                {
+                    text: '확인',
+                    onPress: () => {
+                        // Navigate to MainHome and reset the navigation stack
+                        navigation.reset({
+                            index: 0,
+                            routes: [{ 
+                                name: 'MainHome', 
+                                params: { accessToken: dummyAccessToken } 
+                            }],
+                        });
+                    }
+                }
+            ],
+            { cancelable: false } // User must press "확인"
+        );
     };
 
     const handleEmailCheck = () => {

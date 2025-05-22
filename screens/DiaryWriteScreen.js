@@ -90,77 +90,71 @@ export default function DiaryWriteScreen() {
   };
 
   const handleSubmit = async () => {
-  if (!recordedURI && !content) {
-    Alert.alert("내용 없음", "작성된 내용이나 음성이 없습니다.");
-    return;
-  }
-
-  try {
-    const accessToken = "your_actual_token_here"; // 실제 로그인 후 받은 토큰
-    const selectedDate = dayjs().format("YYYY-MM-DD"); // 오늘 날짜 형식으로
-
-    const formData = new FormData();
-    formData.append('writtenDate', selectedDate);
-    if (content) formData.append('content', content);
-    if (recordedURI) {
-      const uriParts = recordedURI.split('/');
-      const fileName = uriParts[uriParts.length - 1];
-      formData.append('voiceFile', {
-        uri: recordedURI,
-        name: fileName,
-        type: 'audio/x-wav', // 서버에서 요구하는 타입 확인 필요
-      });
+    if (!recordedURI && !content) {
+      Alert.alert("내용 없음", "작성된 내용이나 음성이 없습니다.");
+      return;
     }
 
-    const res = await fetch('http://ceprj.gachon.ac.kr:60021/api/diaries', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'multipart/form-data',
-      },
-      body: formData,
-    });
+    try {
+      const accessToken = "your_actual_token_here"; // 실제 로그인 후 받은 토큰
+      const selectedDate = dayjs().format("YYYY-MM-DD"); // 오늘 날짜 형식으로
 
-    if (!res.ok) throw new Error('일기 등록 실패');
+      const formData = new FormData();
+      formData.append('writtenDate', selectedDate);
+      if (content) formData.append('content', content);
+      if (recordedURI) {
+        const uriParts = recordedURI.split('/');
+        const fileName = uriParts[uriParts.length - 1];
+        formData.append('voiceFile', {
+          uri: recordedURI,
+          name: fileName,
+          type: 'audio/x-wav',
+        });
+      }
 
-    const data = await res.json();
-    const { diaryId } = data;
+      const res = await fetch('http://ceprj.gachon.ac.kr:60021/api/diaries', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
 
-    navigation.navigate('DiaryConfirm', {
-      diaryId,
-      accessToken,
-    });
-  } catch (err) {
-    console.error('❌ 등록 실패:', err.message);
-    Alert.alert('등록 실패', '일기 등록 중 오류가 발생했습니다.');
-  }
-};
+      if (!res.ok) throw new Error('일기 등록 실패');
 
+      const data = await res.json();
+      const { diaryId } = data;
+
+      navigation.navigate('DiaryConfirm', {
+        diaryId,
+        accessToken,
+      });
+    } catch (err) {
+      console.error('❌ 등록 실패:', err.message);
+      Alert.alert('등록 실패', '일기 등록 중 오류가 발생했습니다.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
+          <Ionicons name="chevron-back" size={28} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.date}>{today}</Text>
+        <TouchableOpacity onPress={handleSubmit} style={styles.headerButton}>
+          <Text style={styles.submitTextHeader}>등록</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.contentWrapper}>
         <KeyboardAvoidingView
           style={styles.keyboardAvoiding}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
         >
-          {/* 상단 헤더 */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
-              <Ionicons name="chevron-back" size={28} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitlePlaceholder}></Text>
-            <TouchableOpacity onPress={handleSubmit} style={styles.headerButton}>
-              <Text style={styles.submitTextHeader}>등록</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.date}>{today}</Text>
-          <View style={styles.separator} />
-
-          {/* 본문 입력 영역 */}
           <View style={styles.mainScrollableContent}>
             <ScrollView
               contentContainerStyle={styles.scrollContainer}
@@ -197,7 +191,6 @@ export default function DiaryWriteScreen() {
         </KeyboardAvoidingView>
       </View>
 
-      {/* 하단 고정 바 */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[styles.voiceButton, isRecording && styles.voiceButtonRecording]}
@@ -220,64 +213,57 @@ export default function DiaryWriteScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F9F6',
-  },
-  contentWrapper: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-  },
-  keyboardAvoiding: {
-    flex: 1,
-    paddingHorizontal: 20,
+    backgroundColor: '#EEF5EF', // 이미 요청하신 색상입니다.
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 30,
-    paddingBottom: 10,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    backgroundColor: '#EEF5EF', // 변경된 부분
   },
   headerButton: {
     padding: 8,
   },
-  headerTitlePlaceholder: {
-    flex: 1,
+  date: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#222',
   },
   submitTextHeader: {
     fontSize: 16,
     color: '#4CAF50',
     fontWeight: 'bold',
   },
-  date: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 8,
+  contentWrapper: {
+    flex: 1,
+    backgroundColor: '#EEF5EF', // 변경된 부분
+    borderTopLeftRadius: 45,
+    borderTopRightRadius: 45,
+    overflow: 'hidden',
+    paddingTop: 20,
   },
-  separator: {
-    height: 1,
-    backgroundColor: '#D0D0D0',
-    marginBottom: 20,
+  keyboardAvoiding: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
   mainScrollableContent: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingVertical: 30,
+    paddingBottom: 30,
   },
   input: {
-    minHeight: 300,
     fontSize: 17,
     color: '#333',
     lineHeight: 24,
-    padding: 16,
-    backgroundColor: '#F9F9F9',
-    borderRadius: 12,
+    padding: 20,
+    backgroundColor: '#FFFFFF', // 입력 필드는 가독성을 위해 흰색 배경을 유지하는 것이 일반적입니다.
     textAlignVertical: 'top',
+    flexGrow: 1,
   },
   recordingIndicatorContainer: {
     flex: 1,

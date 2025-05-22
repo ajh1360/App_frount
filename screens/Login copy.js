@@ -9,6 +9,8 @@ import PropTypes from 'prop-types';
 LoginScreen.propTypes = {
     navigation: PropTypes.shape({
         replace: PropTypes.func.isRequired,
+        goBack: PropTypes.func.isRequired, // Added for back navigation
+        // navigate: PropTypes.func.isRequired, // navigate to SignUp is removed
     }).isRequired,
 };
 
@@ -43,16 +45,16 @@ export default function LoginScreen({ navigation }) {
             Alert.alert('로그인 성공 (테스트 계정)');
             navigation.replace('MainHome', { accessToken: fakeAccessToken });
         } else {
-            Alert.alert('에러', '아이디 또는 비밀번호가 잘못되었습니다.\n테스트 계정: test@example.com / 1234');
+            Alert.alert('에러', '아이디 또는 비밀번호가 잘못되었습니다.\n테스트 계정: 1234 / 1234');
         }
-        };
+    };
 
-
-
+    // handleGoToSignUp function removed
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity style={styles.backButton}>
+            {/* Updated backButton to use navigation.goBack() */}
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Icon name="chevron-back" size={24} color="#000" />
             </TouchableOpacity>
 
@@ -76,7 +78,7 @@ export default function LoginScreen({ navigation }) {
                     onChangeText={setPassword}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Text style={styles.showText}>Show</Text>
+                    <Text style={styles.showText}>{showPassword ? 'Hide' : 'Show'}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -97,9 +99,11 @@ export default function LoginScreen({ navigation }) {
                 <Text style={styles.loginButtonText}>로그인</Text>
             </TouchableOpacity>
 
+            {/* 회원가입 버튼 REMOVED */}
+
             <View style={styles.logoContainer}>
                 <Image
-                    source={require('../assets/echoLog_logo.png')} 
+                    source={require('../assets/echoLog_logo.png')}
                     style={styles.logoImage}
                 />
                 <Text style={styles.logoText}>Echo{"\n"}Log</Text>
@@ -110,7 +114,7 @@ export default function LoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 30, justifyContent: 'center' },
-    backButton: { position: 'absolute', top: 60, left: 20 },
+    backButton: { position: 'absolute', top: 60, left: 20, zIndex: 1 /* Ensure it's tappable */ },
     title: { fontSize: 38, fontWeight: '600', alignSelf: 'center', marginBottom: 30 },
     input: {
         backgroundColor: '#F2F2F2',
@@ -119,6 +123,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         fontSize: 16,
         marginBottom: 12,
+        color: '#000',
     },
     passwordContainer: {
         flexDirection: 'row',
@@ -132,6 +137,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 14,
         fontSize: 16,
+        color: '#000',
     },
     showText: {
         color: '#555',
@@ -158,15 +164,17 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         paddingVertical: 14,
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: 30, // Increased margin to account for removed SignUp button
     },
     loginButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
     },
+    // signUpButton and signUpButtonText styles REMOVED
     logoContainer: {
         alignItems: 'center',
+        marginTop: 20, // Added some margin top for spacing after login button
     },
     logoImage: {
         width: 32,
