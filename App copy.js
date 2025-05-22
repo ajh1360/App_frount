@@ -87,12 +87,3 @@ export default function App() {
   );
 }
 
-// StyleSheet는 특별히 변경할 내용이 없으므로 그대로 둡니다.
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#fff',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-// });
