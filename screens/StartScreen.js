@@ -22,14 +22,13 @@ export default function StartScreen({ navigation }) {
     return (
         <View style={styles.container}>
             <View style={styles.headerSection}>
+                {/* 로고 컨테이너: 단일 전체 이미지로 변경 */}
                 <View style={styles.logoContainer}>
-                    <View style={styles.logoIconBackground}>
-                        <Image
-                            source={require('../assets/echoLog_logo.png')} // Assuming same path as Login.js
-                            style={styles.logoIconImage}
-                        />
-                    </View>
-                    <Text style={styles.logoText}>Echo{"\n"}Log</Text>
+                    <Image
+                        source={require('../assets/echoLog_logo.png')} // 전체 로고 이미지 경로
+                        style={styles.logoImage} // Login.js와 동일한 스타일명 사용
+                        resizeMode="contain"
+                    />
                 </View>
             </View>
 
@@ -60,46 +59,36 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
         alignItems: 'center',
-        justifyContent: 'space-around', // Distributes content vertically
+        justifyContent: 'space-around',
         paddingHorizontal: 40,
-        paddingVertical: 50, // Add some vertical padding
+        paddingVertical: 50,
     },
     headerSection: {
         alignItems: 'center',
-        // flex: 1, // Allow it to take up space
         justifyContent: 'center',
     },
     logoContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        // flexDirection: 'row', // 단일 이미지이므로 row 방향 불필요
+        alignItems: 'center', // 이미지 중앙 정렬
+        justifyContent: 'center', // 이미지 중앙 정렬
+        // marginRight: 15, // 더 이상 필요 없음
+        // 이전 logoIconBackground와 logoText를 합친 것보다 충분한 공간을 확보하기 위해 마진 추가 가능
+        // 예: marginBottom: 20, 또는 headerSection에서 패딩 조절
     },
-    logoIconBackground: {
-        width: 90, // Adjusted size to be visually prominent
-        height: 90,
-        borderRadius: 45,
-        backgroundColor: '#FDFCEC', // Light beige/yellowish color from image
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 15,
+    // logoIconBackground 스타일 삭제
+    // logoIconImage 스타일을 logoImage로 변경하고 전체 로고에 맞게 수정
+    logoImage: {
+        width: 240, // Login.js와 동일한 크기로 설정 (필요시 조절)
+        height: 80, // Login.js와 동일한 크기로 설정 (필요시 조절)
     },
-    logoIconImage: {
-        width: 50, // Icon size within the circle
-        height: 50,
-    },
-    logoText: {
-        fontSize: 36, // Larger text for prominence
-        color: '#76A488', // Green color from Login.js
-        fontWeight: 'bold',
-        lineHeight: 42, // Adjust line height for stacked text
-    },
+    // logoText 스타일 삭제
     mainContentSection: {
         alignItems: 'center',
-        // flex: 1, // Allow it to take up space
         justifyContent: 'center',
-        marginVertical: 40, // Add vertical margin
+        marginVertical: 40,
     },
     mainCatchphrase: {
-        fontSize: 26, // Large and bold
+        fontSize: 26,
         fontWeight: 'bold',
         color: '#000',
         textAlign: 'center',
@@ -107,22 +96,21 @@ const styles = StyleSheet.create({
     },
     subCatchphrase: {
         fontSize: 15,
-        color: '#4A4A4A', // Dark gray for readability
+        color: '#4A4A4A',
         textAlign: 'center',
         lineHeight: 22,
     },
     footerSection: {
         alignItems: 'center',
         width: '100%',
-        // flex: 1, // Allow it to take up space
         justifyContent: 'center',
     },
     signUpButton: {
         backgroundColor: '#000',
-        borderRadius: 30, // Pill-shaped button
+        borderRadius: 30,
         paddingVertical: 18,
         paddingHorizontal: 20,
-        width: '100%', // Make button wide
+        width: '100%',
         alignItems: 'center',
         marginBottom: 20,
     },
@@ -133,11 +121,11 @@ const styles = StyleSheet.create({
     },
     loginPromptText: {
         fontSize: 14,
-        color: '#888', // Light gray for the prompt part
+        color: '#888',
     },
     loginLinkText: {
-        color: '#555', // Darker gray or black for the link part
+        color: '#555',
         fontWeight: 'bold',
-        textDecorationLine: 'underline', // Emphasize it's a link
+        textDecorationLine: 'underline',
     },
 });

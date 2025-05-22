@@ -213,7 +213,7 @@ export default function DiaryWriteScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F0F7F3',
+    backgroundColor: '#EEF5EF', // 이미 요청하신 색상입니다.
   },
   header: {
     flexDirection: 'row',
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#F0F7F3',
+    backgroundColor: '#EEF5EF', // 변경된 부분
   },
   headerButton: {
     padding: 8,
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   contentWrapper: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EEF5EF', // 변경된 부분
     borderTopLeftRadius: 45,
     borderTopRightRadius: 45,
     overflow: 'hidden',
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 24,
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF', // 입력 필드는 가독성을 위해 흰색 배경을 유지하는 것이 일반적입니다.
     textAlignVertical: 'top',
     flexGrow: 1,
   },

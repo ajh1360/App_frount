@@ -106,15 +106,15 @@ export default function LoginScreen({ navigation }) {
                     source={require('../assets/echoLog_logo.png')}
                     style={styles.logoImage}
                 />
-                <Text style={styles.logoText}>Echo{"\n"}Log</Text>
             </View>
         </View>
     );
 }
 
+
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 30, justifyContent: 'center' },
-    backButton: { position: 'absolute', top: 60, left: 20, zIndex: 1 /* Ensure it's tappable */ },
+    backButton: { position: 'absolute', top: 60, left: 20, zIndex: 1 },
     title: { fontSize: 38, fontWeight: '600', alignSelf: 'center', marginBottom: 30 },
     input: {
         backgroundColor: '#F2F2F2',
@@ -164,28 +164,25 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         paddingVertical: 14,
         alignItems: 'center',
-        marginBottom: 30, // Increased margin to account for removed SignUp button
+        marginBottom: 30,
     },
     loginButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // signUpButton and signUpButtonText styles REMOVED
     logoContainer: {
-        alignItems: 'center',
-        marginTop: 20, // Added some margin top for spacing after login button
+        justifyContent: 'center', // 이미지를 수평 중앙 정렬
+        alignItems: 'center',   // 이미지를 수직 중앙 정렬
+        marginTop: 20,
+     
+        // logoContainer의 높이를 명시적으로 지정하여 이미지 공간을 확보할 수도 있습니다.
+        // 예: height: 70, 
     },
     logoImage: {
-        width: 32,
-        height: 32,
-        marginBottom: 6,
+        width: 240,  // 로고 이미지의 너비 (이미지 비율에 맞게 조절)
+        height: 100, // 로고 이미지의 높이 (이미지 비율에 맞게 조절)
+        // resizeMode="contain"은 Image 컴포넌트 속성으로 이동했습니다.
     },
-    logoText: {
-        fontSize: 16,
-        color: '#76A488',
-        textAlign: 'center',
-        fontWeight: '600',
-        lineHeight: 20,
-    },
+    // logoText 스타일은 더 이상 사용되지 않으므로 삭제합니다.
 });
