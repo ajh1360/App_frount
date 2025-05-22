@@ -35,9 +35,9 @@ export default function SettingsScreen() {
       <View style={styles.logoContainer}>
         <Image
           source={require('../assets/echoLog_logo.png')}
-          style={styles.logo}
+          style={styles.logoImage}
+          resizeMode="contain"
         />
-        <Text style={styles.logoText}>Echo Log</Text>
       </View>
     </View>
   );
@@ -61,11 +61,15 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc',
   },
   settingText: { fontSize: 16, color: '#333' },
+
   logoContainer: {
-    alignItems: 'center',
-    marginTop: 'auto',
-    marginBottom: 30,
-  },
-  logo: { width: 50, height: 50, marginBottom: 5 },
-  logoText: { fontSize: 18, fontWeight: 'bold', color: '#7A986A' },
+        justifyContent: 'center', // 이미지를 수평 중앙 정렬
+        alignItems: 'center',   // 이미지를 수직 중앙 정렬
+        marginTop: 50,
+    },
+    logoImage: {
+        width: 100,  // 로고 이미지의 너비 (이미지 비율에 맞게 조절)
+        height: 50, // 로고 이미지의 높이 (이미지 비율에 맞게 조절)
+        resizeMode: 'contain',
+    },
 });
