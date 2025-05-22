@@ -5,13 +5,17 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import PropTypes from 'prop-types';
 
+import axios from 'axios';
+
 SignUpScreen.propTypes = {
     navigation: PropTypes.shape({
         goBack: PropTypes.func.isRequired,
-        navigate: PropTypes.func.isRequired, // Added for clarity, though reset is used
-        reset: PropTypes.func.isRequired,    // Added for clarity
+        navigate: PropTypes.func.isRequired,
+        reset: PropTypes.func.isRequired,
     }).isRequired,
 };
+
+const DUMMY_TAKEN_EMAILS = ['test@example.com', 'user@taken.com', 'another@duplicate.com'];
 
 export default function SignUpScreen({ navigation }) {
     const [name, setName] = useState('');
@@ -21,8 +25,66 @@ export default function SignUpScreen({ navigation }) {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [birthDate, setBirthDate] = useState('');
 
-    const handleSignUp = () => {
-        // 유효성 검사
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+    // const handleSignUp = () => {
+    //     if (!name.trim()) {
+    //         Alert.alert('오류', '이름을 입력해주세요.');
+    //         return;
+    //     }
+    //     if (!email.trim()) {
+    //         Alert.alert('오류', '이메일을 입력해주세요.');
+    //         return;
+    //     }
+    //     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    //     if (!emailRegex.test(email)) {
+    //         Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
+    //         return;
+    //     }
+    //     if (password.length < 6 || password.length > 10) {
+    //         Alert.alert('오류', '비밀번호는 6~10자리로 입력해주세요.');
+    //         return;
+    //     }
+    //     if (password !== confirmPassword) {
+    //         Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+    //         return;
+    //     }
+    //     if (!phoneNumber.includes('-') || phoneNumber.length < 10) {
+    //         Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
+    //         return;
+    //     }
+    //     if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
+    //         Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
+    //         return;
+    //     }
+
+    //     console.log('Simulating successful signup:', { name, email, phoneNumber, birthDate });
+    //     const dummyAccessToken = 'simulated_token_after_signup';
+    //     Alert.alert(
+    //         '회원가입 완료',
+    //         '성공적으로 가입되었습니다! 메인 화면으로 이동합니다.',
+    //         [
+    //             {
+    //                 text: '확인',
+    //                 onPress: () => {
+    //                     navigation.reset({
+    //                         index: 0,
+    //                         routes: [{ 
+    //                             name: 'MainHome', 
+    //                             params: { accessToken: dummyAccessToken } 
+    //                         }],
+    //                     });
+    //                 }
+    //             }
+    //         ],
+    //         { cancelable: false }
+    //     );
+    // };
+
+
+
+
+    const handleSignUp = async () => {
         if (!name.trim()) {
             Alert.alert('오류', '이름을 입력해주세요.');
             return;
@@ -31,7 +93,6 @@ export default function SignUpScreen({ navigation }) {
             Alert.alert('오류', '이메일을 입력해주세요.');
             return;
         }
-        // 간단한 이메일 형식 검사
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
@@ -45,7 +106,7 @@ export default function SignUpScreen({ navigation }) {
             Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
             return;
         }
-        if (!phoneNumber.includes('-') || phoneNumber.length < 10) { // 간단한 형식 검사
+        if (!phoneNumber.includes('-') || phoneNumber.length < 10) {
             Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
             return;
         }
@@ -54,42 +115,37 @@ export default function SignUpScreen({ navigation }) {
             return;
         }
 
-        // TODO: 실제 회원가입 API 호출 로직 구현
-        // For now, simulate successful signup and navigation
-        console.log('Simulating successful signup:', { name, email, phoneNumber, birthDate });
-        
-        // In a real app, you would get an accessToken from the server response here.
-        const dummyAccessToken = 'simulated_token_after_signup';
+        try {
+            const res = await axios.post('http://ceprj.gachon.ac.kr:60021/api/members/join', {
+                nickname: name,
+                email,
+                password,
+                phoneNumber,
+                birthDate,
+            });
 
-        Alert.alert(
-            '회원가입 완료',
-            '성공적으로 가입되었습니다! 메인 화면으로 이동합니다.',
-            [
+            const accessToken = res.data.accessToken;
+
+            Alert.alert('회원가입 성공', '환영합니다!', [
                 {
                     text: '확인',
                     onPress: () => {
-                        // Navigate to MainHome and reset the navigation stack
                         navigation.reset({
                             index: 0,
-                            routes: [{ 
-                                name: 'MainHome', 
-                                params: { accessToken: dummyAccessToken } 
-                            }],
+                            routes: [{ name: 'MainHome', params: { accessToken } }],
                         });
                     }
                 }
-            ],
-            { cancelable: false } // User must press "확인"
-        );
-    };
-
-    const handleEmailCheck = () => {
-        // TODO: 이메일 중복 확인 API 호출 로직 구현
-        if (!email.trim()) {
-            Alert.alert('이메일 확인', '이메일을 입력해주세요.');
-            return;
+            ]);
+        } catch (err) {
+            console.error('회원가입 오류:', err);
+            if (err.response) {
+                // 서버에서 에러 응답이 있을 경우
+                Alert.alert('회원가입 실패', err.response.data.message || '이미 등록된 이메일일 수 있습니다.');
+            } else {
+                Alert.alert('에러', err.message);
+            }
         }
-        Alert.alert('이메일 확인', `${email} 중복 확인 기능 구현 필요`);
     };
 
     return (
@@ -109,19 +165,30 @@ export default function SignUpScreen({ navigation }) {
                     onChangeText={setName}
                 />
 
-                <View style={styles.emailContainer}>
-                    <TextInput
-                        style={styles.emailInput}
-                        placeholder="이메일"
-                        placeholderTextColor="#BDBDBD"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                    />
-                    <TouchableOpacity style={styles.checkButton} onPress={handleEmailCheck}>
-                        <Text style={styles.checkButtonText}>확인</Text>
-                    </TouchableOpacity>
+                {/* Modified Email Input Structure */}
+                <View style={styles.emailRow}>
+                    <View style={styles.emailTextInputWrapper}>
+                        <TextInput
+                            style={styles.emailInput}
+                            placeholder="이메일"
+                            placeholderTextColor="#BDBDBD"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                    </View>
+                    <View style={styles.emailButtonWrapper}>
+                        <TouchableOpacity 
+                            style={[styles.checkButton, isCheckingEmail && styles.checkButtonDisabled]} 
+                            onPress={handleEmailCheck}
+                            disabled={isCheckingEmail}
+                        >
+                            {/* <Text style={styles.checkButtonText}>
+                                {isCheckingEmail ? '확인 중...' : '확인'}
+                            </Text> */}
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <TextInput
@@ -176,58 +243,73 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        paddingHorizontal: 25, // 이미지와 유사하게 조정
-        paddingTop: 80, // 뒤로가기 버튼 및 타이틀 공간 확보
+        paddingHorizontal: 25,
+        paddingTop: 80,
         paddingBottom: 40,
     },
     backButton: {
         position: 'absolute',
-        top: 50, // 상태바 높이 고려
+        top: 50,
         left: 15,
         zIndex: 1,
-        padding: 10, // 터치 영역 확보
+        padding: 10,
     },
     title: {
-        fontSize: 34, // 이미지와 유사하게 조정
+        fontSize: 34,
         fontWeight: 'bold',
         color: '#000',
-        marginBottom: 30, // 입력 필드와의 간격
-        // marginLeft: 10, // 이미지에서는 약간 왼쪽 정렬
+        marginBottom: 30,
     },
     input: {
-        backgroundColor: '#F6F6F6', // 이미지와 유사한 배경색
-        borderRadius: 8, // 이미지와 유사한 radius
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        fontSize: 15,
-        marginBottom: 18, // 입력 필드 간 간격
-        color: '#000', // 입력 텍스트 색상
-        borderWidth: 1,
-        borderColor: '#E8E8E8' // 약간의 테두리
-    },
-    emailContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
         backgroundColor: '#F6F6F6',
         borderRadius: 8,
-        marginBottom: 18,
-        borderWidth: 1,
-        borderColor: '#E8E8E8'
-        // paddingRight: 10, // 버튼을 위한 내부 오른쪽 여백은 버튼 스타일에서 처리
-    },
-    emailInput: {
-        flex: 1,
         paddingVertical: 15,
         paddingHorizontal: 20,
         fontSize: 15,
+        marginBottom: 18,
         color: '#000',
+        borderWidth: 1,
+        borderColor: '#E8E8E8'
     },
+    // Styles for the composite email input field
+    emailRow: {
+    flexDirection: 'row',
+    marginBottom: 18,
+    },
+    emailTextInputWrapper: {
+    flex: 1,
+    backgroundColor: '#F6F6F6',
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    justifyContent: 'center',
+    },
+    emailInput: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    fontSize: 15,
+    color: '#000',
+    },
+
+// emailButtonWrapper: 버튼 영역 스타일
+    emailButtonWrapper: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+
+    // checkButton: 독립된 버튼 높이와 패딩
     checkButton: {
-        backgroundColor: '#A0A0A0', // 이미지의 회색 버튼
+        backgroundColor: '#767676',
         borderRadius: 5,
         paddingVertical: 10,
         paddingHorizontal: 15,
-        marginRight: 10, // 입력 필드 테두리 안쪽에 위치하도록
+        minHeight: 45, // 버튼 높이를 고정
+        justifyContent: 'center',
+    },
+    checkButtonDisabled: {
+        backgroundColor: '#BDBDBD',
     },
     checkButtonText: {
         color: '#fff',
@@ -236,10 +318,10 @@ const styles = StyleSheet.create({
     },
     signUpProcessButton: {
         backgroundColor: '#000',
-        borderRadius: 8, // 이미지와 유사한 radius
+        borderRadius: 8,
         paddingVertical: 18,
         alignItems: 'center',
-        marginTop: 25, // 입력 필드 그룹과의 간격
+        marginTop: 25,
     },
     signUpProcessButtonText: {
         color: '#fff',
