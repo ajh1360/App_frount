@@ -5,6 +5,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import PropTypes from 'prop-types';
 
+import axios from 'axios';
 
 SignUpScreen.propTypes = {
     navigation: PropTypes.shape({
@@ -19,115 +20,145 @@ export default function SignUpScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [phone, setPhoneNumber] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [birthDate, setBirthDate] = useState('');
 
-//     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+    // const handleSignUp = () => {
+    //     if (!name.trim()) {
+    //         Alert.alert('오류', '이름을 입력해주세요.');
+    //         return;
+    //     }
+    //     if (!email.trim()) {
+    //         Alert.alert('오류', '이메일을 입력해주세요.');
+    //         return;
+    //     }
+    //     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    //     if (!emailRegex.test(email)) {
+    //         Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
+    //         return;
+    //     }
+    //     if (password.length < 6 || password.length > 10) {
+    //         Alert.alert('오류', '비밀번호는 6~10자리로 입력해주세요.');
+    //         return;
+    //     }
+    //     if (password !== confirmPassword) {
+    //         Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+    //         return;
+    //     }
+    //     if (!phoneNumber.includes('-') || phoneNumber.length < 10) {
+    //         Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
+    //         return;
+    //     }
+    //     if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
+    //         Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
+    //         return;
+    //     }
+
+    //     console.log('Simulating successful signup:', { name, email, phoneNumber, birthDate });
+    //     const dummyAccessToken = 'simulated_token_after_signup';
+    //     Alert.alert(
+    //         '회원가입 완료',
+    //         '성공적으로 가입되었습니다! 메인 화면으로 이동합니다.',
+    //         [
+    //             {
+    //                 text: '확인',
+    //                 onPress: () => {
+    //                     navigation.reset({
+    //                         index: 0,
+    //                         routes: [{ 
+    //                             name: 'MainHome', 
+    //                             params: { accessToken: dummyAccessToken } 
+    //                         }],
+    //                     });
+    //                 }
+    //             }
+    //         ],
+    //         { cancelable: false }
+    //     );
+    // };
 
 
-
-//     const handleEmailCheck = async () => {
-//     if (!email.trim()) {
-//         Alert.alert('오류', '이메일을 입력해주세요.');
-//         return;
-//     }
-
-//     setIsCheckingEmail(true);
-
-//     try {
-//         const response = await fetch(`http://ceprj.gachon.ac.kr:60021/api/members/check?email=${encodeURIComponent(email)}`);
-
-//         if (!response.ok) {
-//             throw new Error(`서버 오류: ${response.status}`);
-//         }
-
-//         const resData = await response.json();
-
-//         if (resData.available) {
-//             Alert.alert("사용 가능한 이메일입니다.");
-//         } else {
-//             Alert.alert("이미 사용 중인 이메일입니다.");
-//         }
-//     } catch (error) {
-//         console.error('이메일 확인 오류:', error);
-//         Alert.alert("오류", "이메일 확인 중 오류가 발생했습니다.");
-//     } finally {
-//         setIsCheckingEmail(false);
-//     }
-// };
+    const handleEmailCheck = async () => {
+  try {
+    const res = await axios.get(`http://서버주소/api/check-email?email=${email}`);
+    if (res.data.available) {
+      Alert.alert("사용 가능한 이메일입니다.");
+    } else {
+      Alert.alert("이미 사용 중인 이메일입니다.");
+    }
+  } catch (error) {
+    console.error(error);
+    Alert.alert("오류", "이메일 확인 중 오류 발생");
+  }
+};
 
 
 
     const handleSignUp = async () => {
-    if (!name.trim()) {
-        Alert.alert('오류', '이름을 입력해주세요.');
-        return;
-    }
-    if (!email.trim()) {
-        Alert.alert('오류', '이메일을 입력해주세요.');
-        return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
-        return;
-    }
-    if (password.length < 6 || password.length > 10) {
-        Alert.alert('오류', '비밀번호는 6~10자리로 입력해주세요.');
-        return;
-    }
-    if (password !== confirmPassword) {
-        Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
-        return;
-    }
-    if (!phone.includes('-') || phone.length < 10) {
-        Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
-        return;
-    }
-    if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
-        Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
-        return;
-    }
-
-    try {
-        const response = await fetch('http://ceprj.gachon.ac.kr:60021/api/members', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                name: name,
-                email,
-                password,
-                phone,
-                birthDate,
-            }),
-        });
-
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.message || `서버 오류: ${response.status}`);
+        if (!name.trim()) {
+            Alert.alert('오류', '이름을 입력해주세요.');
+            return;
+        }
+        if (!email.trim()) {
+            Alert.alert('오류', '이메일을 입력해주세요.');
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
+            return;
+        }
+        if (password.length < 6 || password.length > 10) {
+            Alert.alert('오류', '비밀번호는 6~10자리로 입력해주세요.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+            return;
+        }
+        if (!phoneNumber.includes('-') || phoneNumber.length < 10) {
+            Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
+            return;
+        }
+        if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
+            Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
+            return;
         }
 
-        const data = await response.json();
-        const accessToken = data.accessToken;
+        try {
+            const res = await axios.post('http://ceprj.gachon.ac.kr:60021/api/members', {
+                nickname: name,
+                email,
+                password,
+                phoneNumber,
+                birthDate,
+            });
 
-        Alert.alert('회원가입 성공', '환영합니다!', [
-            {
-                text: '확인',
-                onPress: () => {
-                    navigation.reset({
-                        index: 0,
-                        routes: [{ name: 'Login', params: { accessToken } }],
-                    });
+            const accessToken = res.data.accessToken;
+
+            Alert.alert('회원가입 성공', '환영합니다!', [
+                {
+                    text: '확인',
+                    onPress: () => {
+                        navigation.reset({
+                            index: 0,
+                            routes: [{ name: 'MainHome', params: { accessToken } }],
+                        });
+                    }
                 }
+            ]);
+        } catch (err) {
+            console.error('회원가입 오류:', err);
+            if (err.response) {
+                // 서버에서 에러 응답이 있을 경우
+                Alert.alert('회원가입 실패', err.response.data.message || '이미 등록된 이메일일 수 있습니다.');
+            } else {
+                Alert.alert('에러', err.message);
             }
-        ]);
-    } catch (err) {
-        console.error('회원가입 오류:', err);
-        Alert.alert('회원가입 실패', err.message);
-    }
-};
+        }
+    };
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -159,7 +190,7 @@ export default function SignUpScreen({ navigation }) {
                             autoCapitalize="none"
                         />
                     </View>
-                    {/* <View style={styles.emailButtonWrapper}>
+                    <View style={styles.emailButtonWrapper}>
                         <TouchableOpacity 
                             style={[styles.checkButton, isCheckingEmail && styles.checkButtonDisabled]} 
                             onPress={handleEmailCheck}
@@ -169,7 +200,7 @@ export default function SignUpScreen({ navigation }) {
                                 {isCheckingEmail ? '확인 중...' : '확인'}
                             </Text>
                         </TouchableOpacity>
-                    </View> */}
+                    </View>
                 </View>
 
                 <TextInput
@@ -194,7 +225,7 @@ export default function SignUpScreen({ navigation }) {
                     style={styles.input}
                     placeholder="-를 포함한 전화번호"
                     placeholderTextColor="#BDBDBD"
-                    value={phone}
+                    value={phoneNumber}
                     onChangeText={setPhoneNumber}
                     keyboardType="phone-pad"
                 />
