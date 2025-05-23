@@ -19,9 +19,7 @@ import { Audio } from 'expo-av';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 
-import RecordingImage from '../assets/recode.png'; // Ensure this path is correct
-
-const BASE_URL = 'http://ceprj.gachon.ac.kr:60021';
+import RecordingImage from '../assets/recode.png'; 
 
 const RECORDING_OPTIONS_M4A = {
   isMeteringEnabled: true,
@@ -57,9 +55,11 @@ export default function DiaryWriteScreen() {
   useEffect(() => {
     return () => {
       if (recording) {
-        recording.stopAndUnloadAsync().catch(console.error);
+        recording.stopAndUnloadAsync().catch(err => console.error("Error stopping/unloading recording:", err));
       }
-      Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(console.error);
+      Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(err =>
+        console.error("Error resetting audio mode:", err)
+      );
     };
   }, [recording]);
 
@@ -85,7 +85,6 @@ export default function DiaryWriteScreen() {
       setRecordedURI(null);
       setContent('');
     } catch (err) {
-      console.error('Failed to start recording', err);
       Alert.alert('녹음 시작 오류', err.message);
     }
   };
@@ -100,7 +99,6 @@ export default function DiaryWriteScreen() {
       setIsRecording(false);
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
     } catch (err) {
-      console.error('Failed to stop recording', err);
       Alert.alert('녹음 중지 오류', err.message);
     }
   };
@@ -128,7 +126,43 @@ export default function DiaryWriteScreen() {
     setRecordedURI(null);
   };
 
-  const submitDiary = async (isTemporary) => {
+  const BASE_URL = 'http://ceprj.gachon.ac.kr:60021';
+
+  const handleSubmit = async () => {
+  if (!content.trim()) {
+    Alert.alert('내용 없음', '텍스트 내용을 입력해주세요.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/api/diaries?temp=false`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        writtenDate: selectedDate,
+        content: content.trim(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`서버 오류: ${response.status}`);
+    }
+
+    const resJson = await response.json();
+    const { diaryId } = resJson;
+
+    Alert.alert('일기 등록 완료!');
+    navigation.navigate('DiaryConfirm', { diaryId, accessToken });
+  } catch (err) {
+    Alert.alert('등록 오류', err.message);
+  }
+};
+
+
+  const handleTemporarySave = async () => {
     if (!recordedURI && !content.trim()) {
       Alert.alert('내용 없음', '텍스트 내용이나 음성 녹음이 필요합니다.');
       return;
@@ -149,52 +183,25 @@ export default function DiaryWriteScreen() {
         });
       }
 
-      const res = await fetch(`${BASE_URL}/api/diaries?temp=${isTemporary}`, {
+      const res = await fetch(`${BASE_URL}/api/diaries?temp=true`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'multipart/form-data',
         },
         body: formData,
       });
 
-      if (!res.ok) {
-        const errorData = await res.text();
-        throw new Error(`${isTemporary ? '임시 저장' : '등록'} 실패: ${res.status} - ${errorData}`);
-      }
-
-      const data = await res.json();
-      Alert.alert(
-        isTemporary ? '임시 저장 완료' : '등록 완료',
-        `일기가 성공적으로 ${isTemporary ? '임시 저장' : '등록'}되었습니다.`
-      );
-      if (isTemporary) {
-        navigation.goBack(); // Or navigate to a drafts screen
-      } else {
-        navigation.navigate('DiaryConfirm', { diaryId: data.diaryId, accessToken });
-      }
+      if (!res.ok) throw new Error(`임시 저장 실패: ${res.status}`);
+      Alert.alert('임시 저장 완료!');
     } catch (err) {
-      console.error('Submit failed', err);
-      Alert.alert(isTemporary ? '임시 저장 실패' : '등록 실패', err.message);
+      Alert.alert('임시 저장 오류', err.message);
     }
   };
-
-  const handleSubmit = () => submitDiary(false);
-  const handleTemporarySave = () => submitDiary(true);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'default'} />
-
-      {/* Top Navigation: Back and Submit */}
-      <View style={styles.navHeaderRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
-          <Ionicons name="chevron-back" size={30} color="#333" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleSubmit}>
-          <Text style={styles.submitText}>등록</Text>
-        </TouchableOpacity>
-      </View>
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -202,28 +209,23 @@ export default function DiaryWriteScreen() {
       >
         <View style={styles.whiteBox}>
           <View style={styles.navHeaderRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
-            <Ionicons name="chevron-back" size={28} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleSubmit}>
-            <Text style={styles.submitText}>등록</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
+              <Ionicons name="chevron-back" size={28} color="#333" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSubmit}>
+              <Text style={styles.submitText}>등록</Text>
+            </TouchableOpacity>
+          </View>
 
-      <Text style={styles.dateDisplay}>
-        {dayjs(selectedDate).format('YY.MM.DD')}
-      </Text>
-  <View style={styles.divider} />
+          <Text style={styles.dateDisplay}>
+            {dayjs(selectedDate).format('YY.MM.DD')}
+          </Text>
+          <View style={styles.divider} />
+
           <ScrollView
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 10 }}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Date Display
-            <Text style={styles.dateDisplay}>
-              {dayjs(selectedDate).format('YY.MM.DD')}
-            </Text>
-            <View style={styles.divider} /> */}
-
             {isRecording ? (
               <View style={styles.recordingContainer}>
                 <Image source={RecordingImage} style={styles.recordingImage} />
@@ -231,14 +233,14 @@ export default function DiaryWriteScreen() {
               </View>
             ) : recordedURI ? (
               <View style={styles.audioInfoContainer}>
-                 <View style={styles.audioInfo}>
-                    <MaterialIcons name="graphic-eq" size={24} color="#3C5741" style={{marginRight: 10}} />
-                    <Text style={styles.audioFileName} numberOfLines={1}>
-                      {recordedURI.split('/').pop()}
-                    </Text>
-                    <TouchableOpacity onPress={handleDeleteRecording}>
-                      <MaterialIcons name="delete" size={24} color="#D32F2F" />
-                    </TouchableOpacity>
+                <View style={styles.audioInfo}>
+                  <MaterialIcons name="graphic-eq" size={24} color="#3C5741" style={{ marginRight: 10 }} />
+                  <Text style={styles.audioFileName} numberOfLines={1}>
+                    {recordedURI.split('/').pop()}
+                  </Text>
+                  <TouchableOpacity onPress={handleDeleteRecording}>
+                    <MaterialIcons name="delete" size={24} color="#D32F2F" />
+                  </TouchableOpacity>
                 </View>
               </View>
             ) : (
@@ -255,7 +257,6 @@ export default function DiaryWriteScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Bottom Bar: Voice Record and Temporary Save */}
       <View style={styles.bottomBarContainer}>
         <TouchableOpacity
           style={[
@@ -270,7 +271,7 @@ export default function DiaryWriteScreen() {
             size={20}
             color={isRecording || recordedURI ? "white" : "#3C5741"}
           />
-          <Text style={[styles.bottomBarButtonText, styles.voiceRecordButtonText, (isRecording || recordedURI) && {color: "white"}]}>
+          <Text style={[styles.bottomBarButtonText, styles.voiceRecordButtonText, (isRecording || recordedURI) && { color: "white" }]}>
             {isRecording ? '녹음 중지' : recordedURI ? '녹음 변경' : '음성으로 작성'}
           </Text>
         </TouchableOpacity>
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    marginTop: 5, // Reduced margin as date is now inside
+    marginTop: 70, // 상단 연초록 배경 보이z게
     marginHorizontal: 5,
     paddingHorizontal: 25,
     paddingTop: 20,
