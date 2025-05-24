@@ -1,4 +1,3 @@
-
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -8,6 +7,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 60,
   },
+
+  // 상단 헤더
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -29,6 +30,8 @@ export const styles = StyleSheet.create({
     marginHorizontal: 10,
     color: '#444',
   },
+
+  // 달력 전체 박스
   calendarContainer: {
     backgroundColor: 'white',
     borderRadius: 40,
@@ -41,6 +44,8 @@ export const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 16,
   },
+
+  // 요일 헤더
   weekRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -52,6 +57,8 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#576146',
   },
+
+  // 날짜 칸들
   daysContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -61,11 +68,17 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 4,
   },
+
+  // 날짜 숫자
   dayText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#576146',
   },
+
+ 
+
+  // 감정 아이콘 자리
   iconCircle: {
     width: 40,
     height: 40,
@@ -75,16 +88,21 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+
+  // 감정 이미지
   dayIcon: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  diaryCard: { // 통합된 diaryCard 스타일
+
+  // ✅ 일기 카드 (하단 바 위에 띄우기 위해 position 변경)
+  diaryCard: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 80, // 하단 바 높이만큼 위로 조정 (80으로 가정)
+    bottom: 0, // 하단 바 높이만큼 위로
     backgroundColor: 'white',
     padding: 20,
     borderTopLeftRadius: 30,
@@ -96,16 +114,18 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowRadius: 6,
   },
+
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-start', // 왼쪽 정렬
     paddingHorizontal: 16,
   },
+  
   cardHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', // 좌우 양쪽 정렬
     paddingHorizontal: 16,
   },
   emotionIcon: {
@@ -148,15 +168,13 @@ export const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  noDiaryText: { // 통합된 noDiaryText 스타일
-    fontSize: 14,      // 이전 정의에서 가져오거나 원하는 크기로 설정
-    color: '#555',     // 흰색 배경에 맞게 어두운 회색으로 변경
-    textAlign: 'center',
-    paddingHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 16,
-    lineHeight: 22,
+  noDiaryText: {
+    fontSize: 14,
+    color: 'white',
+    marginBottom: 20,
   },
+
+  // 추가: 하단 바 스타일
   bottomBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -180,17 +198,10 @@ export const styles = StyleSheet.create({
     width: 50,
     height: 50,
     marginBottom: 1,
+    //tintColor: '#666',
   },
   bottomLabel: {
     fontSize: 12,
     color: '#666',
-  },
-  todayText: {
-    color: '#2e7d32',
-    fontWeight: 'bold',
-  },
-  selectedDayWrapper: {
-    backgroundColor: '#d0e8d1',
-    borderRadius: 20,
   },
 });

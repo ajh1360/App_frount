@@ -22,42 +22,6 @@ export default function SignUpScreen({ navigation }) {
     const [phone, setPhoneNumber] = useState('');
     const [birthDate, setBirthDate] = useState('');
 
-//     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-
-
-
-//     const handleEmailCheck = async () => {
-//     if (!email.trim()) {
-//         Alert.alert('오류', '이메일을 입력해주세요.');
-//         return;
-//     }
-
-//     setIsCheckingEmail(true);
-
-//     try {
-//         const response = await fetch(`http://ceprj.gachon.ac.kr:60021/api/members/check?email=${encodeURIComponent(email)}`);
-
-//         if (!response.ok) {
-//             throw new Error(`서버 오류: ${response.status}`);
-//         }
-
-//         const resData = await response.json();
-
-//         if (resData.available) {
-//             Alert.alert("사용 가능한 이메일입니다.");
-//         } else {
-//             Alert.alert("이미 사용 중인 이메일입니다.");
-//         }
-//     } catch (error) {
-//         console.error('이메일 확인 오류:', error);
-//         Alert.alert("오류", "이메일 확인 중 오류가 발생했습니다.");
-//     } finally {
-//         setIsCheckingEmail(false);
-//     }
-// };
-
-
-
     const handleSignUp = async () => {
     if (!name.trim()) {
         Alert.alert('오류', '이름을 입력해주세요.');
@@ -85,49 +49,71 @@ export default function SignUpScreen({ navigation }) {
         return;
     }
     if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
-        Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
-        return;
+    Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
+    return;
+}
+    const yearDigits = birthDate.substring(0, 2);      // yearDigits 정의
+    const month = birthDate.substring(2, 4);         // month 정의
+    const day = birthDate.substring(4, 6);           // day 정의
+
+    const currentYearLastTwoDigits = new Date().getFullYear() % 100;
+    // yearPrefix 계산 시 yearDigits 사용 (이미 정의되어 있어야 함)
+    const yearPrefix = parseInt(yearDigits, 10) <= (currentYearLastTwoDigits + 5) ? '20' : '19';
+
+    // formattedBirthDate 생성 시 yearDigits, month, day 사용 (이미 정의되어 있어야 함)
+    const formattedBirthDate = `${yearPrefix}${yearDigits}-${month}-${day}`;
+
+    const requestBody = {
+        name: name,
+        email,
+        password,
+        phone,
+        birthDate: formattedBirthDate,
+        role: "USER"
+    };
+
+    console.log('Request Body to Server:', JSON.stringify(requestBody, null, 2));
+
+
+    // SignUpScreen.js - handleSignUp 함수 내
+// ... (requestBody 로깅 후)
+
+try {
+    const response = await fetch('http://ceprj.gachon.ac.kr:60021/api/members', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+    });
+
+    console.log('Server Response Status:', response.status); // 서버 응답 상태 코드
+    console.log('Server Response OK?:', response.ok);       // response.ok 값 (true/false)
+
+    if (!response.ok) {
+        // 에러 응답 본문 확인
+        const errData = await response.json().catch(() => ({ message: "서버 응답 JSON 파싱 실패 또는 내용 없음" })); // JSON 파싱 실패 대비
+        console.error('Server Error Data:', errData);
+        throw new Error(errData.message || `서버 오류: ${response.status}`);
     }
 
-    try {
-        const response = await fetch('http://ceprj.gachon.ac.kr:60021/api/members', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                name: name,
-                email,
-                password,
-                phone,
-                birthDate,
-            }),
-        });
 
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.message || `서버 오류: ${response.status}`);
-        }
+    console.log('회원가입 성공 - 로그인 페이지로 이동 중');
+    navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+    });
 
-        const data = await response.json();
-        const accessToken = data.accessToken;
-
-        Alert.alert('회원가입 성공', '환영합니다!', [
-            {
-                text: '확인',
-                onPress: () => {
-                    navigation.reset({
-                        index: 0,
-                        routes: [{ name: 'Login', params: { accessToken } }],
-                    });
-                }
-            }
-        ]);
+    
     } catch (err) {
-        console.error('회원가입 오류:', err);
-        Alert.alert('회원가입 실패', err.message);
+        console.error('회원가입 전체 오류:', err); // 전체 try-catch 블록에서 잡힌 오류
+        Alert.alert('회원가입 실패', err.message || '알 수 없는 오류가 발생했습니다.');
     }
 };
+
+
+
+
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">

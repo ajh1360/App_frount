@@ -5,7 +5,6 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import PropTypes from 'prop-types';
 
-import axios from 'axios';
 
 SignUpScreen.propTypes = {
     navigation: PropTypes.shape({
@@ -20,145 +19,120 @@ export default function SignUpScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [phoneNumber, setPhoneNumber] = useState('');
+    const [phone, setPhoneNumber] = useState('');
     const [birthDate, setBirthDate] = useState('');
 
-    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-
-    // const handleSignUp = () => {
-    //     if (!name.trim()) {
-    //         Alert.alert('오류', '이름을 입력해주세요.');
-    //         return;
-    //     }
-    //     if (!email.trim()) {
-    //         Alert.alert('오류', '이메일을 입력해주세요.');
-    //         return;
-    //     }
-    //     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    //     if (!emailRegex.test(email)) {
-    //         Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
-    //         return;
-    //     }
-    //     if (password.length < 6 || password.length > 10) {
-    //         Alert.alert('오류', '비밀번호는 6~10자리로 입력해주세요.');
-    //         return;
-    //     }
-    //     if (password !== confirmPassword) {
-    //         Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
-    //         return;
-    //     }
-    //     if (!phoneNumber.includes('-') || phoneNumber.length < 10) {
-    //         Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
-    //         return;
-    //     }
-    //     if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
-    //         Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
-    //         return;
-    //     }
-
-    //     console.log('Simulating successful signup:', { name, email, phoneNumber, birthDate });
-    //     const dummyAccessToken = 'simulated_token_after_signup';
-    //     Alert.alert(
-    //         '회원가입 완료',
-    //         '성공적으로 가입되었습니다! 메인 화면으로 이동합니다.',
-    //         [
-    //             {
-    //                 text: '확인',
-    //                 onPress: () => {
-    //                     navigation.reset({
-    //                         index: 0,
-    //                         routes: [{ 
-    //                             name: 'MainHome', 
-    //                             params: { accessToken: dummyAccessToken } 
-    //                         }],
-    //                     });
-    //                 }
-    //             }
-    //         ],
-    //         { cancelable: false }
-    //     );
-    // };
-
-
-    const handleEmailCheck = async () => {
-  try {
-    const res = await axios.get(`http://서버주소/api/check-email?email=${email}`);
-    if (res.data.available) {
-      Alert.alert("사용 가능한 이메일입니다.");
-    } else {
-      Alert.alert("이미 사용 중인 이메일입니다.");
+    const handleSignUp = async () => {
+    if (!name.trim()) {
+        Alert.alert('오류', '이름을 입력해주세요.');
+        return;
     }
-  } catch (error) {
-    console.error(error);
-    Alert.alert("오류", "이메일 확인 중 오류 발생");
-  }
+    if (!email.trim()) {
+        Alert.alert('오류', '이메일을 입력해주세요.');
+        return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
+        return;
+    }
+    if (password.length < 6 || password.length > 10) {
+        Alert.alert('오류', '비밀번호는 6~10자리로 입력해주세요.');
+        return;
+    }
+    if (password !== confirmPassword) {
+        Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+        return;
+    }
+    if (!phone.includes('-') || phone.length < 10) {
+        Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
+        return;
+    }
+    if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
+    Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
+    return;
+}
+    const yearDigits = birthDate.substring(0, 2);      // yearDigits 정의
+    const month = birthDate.substring(2, 4);         // month 정의
+    const day = birthDate.substring(4, 6);           // day 정의
+
+    const currentYearLastTwoDigits = new Date().getFullYear() % 100;
+    // yearPrefix 계산 시 yearDigits 사용 (이미 정의되어 있어야 함)
+    const yearPrefix = parseInt(yearDigits, 10) <= (currentYearLastTwoDigits + 5) ? '20' : '19';
+
+    // formattedBirthDate 생성 시 yearDigits, month, day 사용 (이미 정의되어 있어야 함)
+    const formattedBirthDate = `${yearPrefix}${yearDigits}-${month}-${day}`;
+
+    const requestBody = {
+        name: name,
+        email,
+        password,
+        phone,
+        birthDate: formattedBirthDate,
+        role: "USER"
+    };
+
+    console.log('Request Body to Server:', JSON.stringify(requestBody, null, 2));
+
+
+    // SignUpScreen.js - handleSignUp 함수 내
+// ... (requestBody 로깅 후)
+
+try {
+    const response = await fetch('http://ceprj.gachon.ac.kr:60021/api/members', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+    });
+
+    console.log('Server Response Status:', response.status); // 서버 응답 상태 코드
+    console.log('Server Response OK?:', response.ok);       // response.ok 값 (true/false)
+
+    if (!response.ok) {
+        // 에러 응답 본문 확인
+        const errData = await response.json().catch(() => ({ message: "서버 응답 JSON 파싱 실패 또는 내용 없음" })); // JSON 파싱 실패 대비
+        console.error('Server Error Data:', errData);
+        throw new Error(errData.message || `서버 오류: ${response.status}`);
+    }
+
+    // 성공 응답 본문 확인
+    const data = await response.json();
+    console.log('Server Success Data:', data); // 성공 시 서버가 보낸 데이터 (accessToken 포함)
+    const accessToken = data.accessToken;
+
+    // 토큰 존재 여부 확인
+    if (!accessToken) {
+        console.error('Access Token is missing in server response!');
+        Alert.alert('회원가입 문제', '서버로부터 액세스 토큰을 받지 못했습니다.');
+        return; // 토큰 없으면 진행 중단
+    }
+    console.log('Received Access Token:', accessToken);
+
+    Alert.alert('회원가입 성공', '환영합니다!', [
+        {
+            text: '확인',
+            onPress: () => {
+                console.log('Navigating to Login screen...');
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Login', params: { accessToken } }],
+                });
+            }
+        }
+    ]);
+
+    
+    } catch (err) {
+        console.error('회원가입 전체 오류:', err); // 전체 try-catch 블록에서 잡힌 오류
+        Alert.alert('회원가입 실패', err.message || '알 수 없는 오류가 발생했습니다.');
+    }
 };
 
 
 
-    const handleSignUp = async () => {
-        if (!name.trim()) {
-            Alert.alert('오류', '이름을 입력해주세요.');
-            return;
-        }
-        if (!email.trim()) {
-            Alert.alert('오류', '이메일을 입력해주세요.');
-            return;
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
-            return;
-        }
-        if (password.length < 6 || password.length > 10) {
-            Alert.alert('오류', '비밀번호는 6~10자리로 입력해주세요.');
-            return;
-        }
-        if (password !== confirmPassword) {
-            Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
-            return;
-        }
-        if (!phoneNumber.includes('-') || phoneNumber.length < 10) {
-            Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
-            return;
-        }
-        if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
-            Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
-            return;
-        }
 
-        try {
-            const res = await axios.post('http://ceprj.gachon.ac.kr:60021/api/members', {
-                nickname: name,
-                email,
-                password,
-                phoneNumber,
-                birthDate,
-            });
-
-            const accessToken = res.data.accessToken;
-
-            Alert.alert('회원가입 성공', '환영합니다!', [
-                {
-                    text: '확인',
-                    onPress: () => {
-                        navigation.reset({
-                            index: 0,
-                            routes: [{ name: 'MainHome', params: { accessToken } }],
-                        });
-                    }
-                }
-            ]);
-        } catch (err) {
-            console.error('회원가입 오류:', err);
-            if (err.response) {
-                // 서버에서 에러 응답이 있을 경우
-                Alert.alert('회원가입 실패', err.response.data.message || '이미 등록된 이메일일 수 있습니다.');
-            } else {
-                Alert.alert('에러', err.message);
-            }
-        }
-    };
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -190,7 +164,7 @@ export default function SignUpScreen({ navigation }) {
                             autoCapitalize="none"
                         />
                     </View>
-                    <View style={styles.emailButtonWrapper}>
+                    {/* <View style={styles.emailButtonWrapper}>
                         <TouchableOpacity 
                             style={[styles.checkButton, isCheckingEmail && styles.checkButtonDisabled]} 
                             onPress={handleEmailCheck}
@@ -200,7 +174,7 @@ export default function SignUpScreen({ navigation }) {
                                 {isCheckingEmail ? '확인 중...' : '확인'}
                             </Text>
                         </TouchableOpacity>
-                    </View>
+                    </View> */}
                 </View>
 
                 <TextInput
@@ -225,7 +199,7 @@ export default function SignUpScreen({ navigation }) {
                     style={styles.input}
                     placeholder="-를 포함한 전화번호"
                     placeholderTextColor="#BDBDBD"
-                    value={phoneNumber}
+                    value={phone}
                     onChangeText={setPhoneNumber}
                     keyboardType="phone-pad"
                 />
