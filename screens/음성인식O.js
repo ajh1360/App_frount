@@ -529,19 +529,13 @@ export default function DiaryWriteScreen() {
           <MaterialIcons
             name={isRecording ? 'stop' : (recordedURI ? 'autorenew' : 'mic')}
             size={20}
-            color={
-                (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI))
-                  ? "#FFFFFF"
-                  : ((isRecording || recordedURI)
-                    ? "white"
-                    : "#3C5741")
-              }
+            color={ (isConvertingVoice || (content.trim() && !isRecording && !recordedURI)) ? "#B0B0B0" : ((isRecording || recordedURI) ? "white" : "#3C5741") }
           />
           <Text style={[
               styles.bottomBarButtonText,
               styles.voiceRecordButtonText,
               (isRecording || recordedURI) && { color: "white" }, 
-              (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI)) && { color: "#FFFFFF" } 
+              (isConvertingVoice || (content.trim() && !isRecording && !recordedURI)) && { color: "#B0B0B0" } 
             ]}
           >
             {isRecording ? '녹음 중지' : recordedURI ? '녹음 변경' : '음성으로 작성'}
@@ -556,6 +550,7 @@ export default function DiaryWriteScreen() {
             ]}
             onPress={async () => {
                 const result = await handleTemporarySave(false);
+                // ... (기존 로직)
             }}
             disabled={(!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice } 
         >

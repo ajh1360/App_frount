@@ -188,57 +188,7 @@ export default function MainHome({ route }) {
     const { diary, dateStr } = selectedDiaryForAction;
     console.log("[Modal Action] 지우고 새로 쓰기 선택됨, 삭제 확인 Alert 시도");
 
-    // React Native 기본 Alert를 사용하여 삭제 재확인
-    // 만약 이 Alert도 Expo Go에서 동작하지 않으면, 이 부분을 삭제하고 바로 삭제 로직으로 진행하거나,
-    // 매우 간단한 텍스트 기반의 추가 확인 UI를 커스텀 모달 내부에 구현해야 합니다.
-    Alert.alert(
-      "삭제 확인",
-      "정말 임시 저장된 일기를 삭제하고 새로 작성하시겠습니까?",
-      [
-        { 
-          text: "취소", 
-          style: "cancel", 
-          onPress: () => {
-            console.log("[Delete Confirm Alert] 취소 선택됨");
-            // 모달을 닫지 않고 유지하거나, 필요에 따라 setIsActionModalVisible(false) 호출
-          }
-        },
-        {
-          text: "삭제 후 새로 쓰기",
-          style: "destructive",
-          onPress: async () => {
-            console.log("[Delete Confirm Alert] 삭제 후 새로 쓰기 선택됨");
-            try {
-              const response = await fetch(`http://ceprj.gachon.ac.kr:60021/api/diaries/${diary.diaryId}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${accessToken}` },
-              });
-              if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: "삭제 중 서버 오류 발생" }));
-                throw new Error(errorData.message || `삭제 실패: ${response.status}`);
-              }
-              console.log("임시 저장된 일기가 삭제되었습니다."); // 콘솔 로그 또는 다른 방식의 알림
-              fetchDiaryListFor(currentDate, true);
-              navigation.navigate('DiaryWriteScreen', {
-                selectedDate: dateStr,
-                accessToken: accessToken,
-              });
-            } catch (err) {
-              console.error("임시 일기 삭제 오류:", err);
-              // Alert.alert("오류", err.message || "삭제 중 오류가 발생했습니다."); // 문제의 Alert 대신 콘솔 로그
-              console.log("오류:", err.message || "삭제 중 오류가 발생했습니다.");
-            } finally {
-              setIsActionModalVisible(false);
-              setSelectedDiaryForAction(null);
-            }
-          }
-        }
-      ],
-      { cancelable: false } // 확인 Alert는 보통 취소 불가능하게 설정
-    );
-    // 만약 위 Alert.alert가 동작하지 않아 바로 삭제해야 한다면, 위 Alert.alert 블록을 주석처리/삭제하고 아래 로직을 바로 실행
-    /*
-    // (Alert 없이 바로 삭제하는 경우의 로직 - 주의해서 사용)
+
     (async () => {
         console.log("[Modal Action] (No Confirm) 지우고 새로 쓰기 실행");
         try {
@@ -251,21 +201,25 @@ export default function MainHome({ route }) {
                 throw new Error(errorData.message || `삭제 실패: ${response.status}`);
             }
             console.log("임시 저장된 일기가 삭제되었습니다.");
-            fetchDiaryListFor(currentDate, true);
-            navigation.navigate('DiaryWriteScreen', {
+            fetchDiaryListFor(currentDate, true); // 달력 목록 새로고침
+            navigation.navigate('DiaryWriteScreen', { // 일기 작성 화면으로 이동
                 selectedDate: dateStr,
                 accessToken: accessToken,
+                // tempDiaryId는 전달하지 않음 (새로 작성)
             });
         } catch (err) {
             console.error("임시 일기 삭제 오류:", err);
             console.log("오류:", err.message || "삭제 중 오류가 발생했습니다.");
+            // 사용자에게 오류 알림 (예: 커스텀 알림 또는 간단한 텍스트 표시)
+            Alert.alert("오류", err.message || "삭제 중 오류가 발생했습니다."); // 이 Alert도 문제가 될 수 있으므로, 필요시 다른 방식으로 대체
         } finally {
             setIsActionModalVisible(false);
             setSelectedDiaryForAction(null);
         }
     })();
-    */
   };
+    
+
 
   const handleModalCancel = () => {
     console.log("[Modal Action] 취소 선택됨");
@@ -499,14 +453,15 @@ const modalStyles = ModalStyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: '85%',
+    width: '90%', // 가로로 배치된 버튼들을 위해 너비 약간 조정
+    maxWidth: 400, // 큰 화면에서의 최대 너비 설정
     backgroundColor: 'white',
     borderRadius: 15,
     paddingVertical: 25,
     paddingHorizontal: 20,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2, },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
@@ -525,30 +480,28 @@ const modalStyles = ModalStyleSheet.create({
     lineHeight: 22,
   },
   modalButtonContainer: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  justifyContent: 'space-between',
-  gap: 10,
-},
-modalButton: {
-  flexBasis: '48%',
-  paddingVertical: 10,
-  borderRadius: 8,
-  alignItems: 'center',
-  marginBottom: 10,
-},
+    flexDirection: 'row', // 버튼들을 가로로 배열
+    justifyContent: 'space-between', // 버튼 사이에 공간 배분
+    width: '100%', // 컨테이너가 모달 내용 영역의 전체 너비를 차지하도록 설정
+  },
+  modalButton: {
+    flex: 1, // 각 버튼이 modalButtonContainer 내에서 동일한 공간을 차지
+    paddingVertical: 12, // 텍스트 가독성을 위한 세로 패딩 조정
+    paddingHorizontal: 10, // 가로 패딩
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5, // 버튼 사이에 약간의 가로 여백 추가
+  },
   continueButton: {
-    backgroundColor: '#28a745', // 좀 더 부드러운 초록색
+    backgroundColor: '#28a745',
   },
   deleteButton: {
-    backgroundColor: '#dc3545', // 좀 더 부드러운 빨간색
+    backgroundColor: '#dc3545',
   },
-  // cancelButton: {
-  //   backgroundColor: '#6c757d', // 좀 더 부드러운 회색
-  // },
   modalButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 15, // 필요시 폰트 크기 조정
     fontWeight: '600',
+    textAlign: 'center', // 텍스트를 버튼 중앙에 정렬
   },
 });

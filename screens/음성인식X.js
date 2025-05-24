@@ -1,9 +1,7 @@
-// --- START OF FILE DiaryWriteScreen.js ---
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback 추가
 import {
   SafeAreaView,View,Text,TextInput,TouchableOpacity,Alert,ScrollView,Image,Platform,StatusBar,Dimensions,KeyboardAvoidingView,StyleSheet, ActivityIndicator
-} from 'react-native';
+} from 'react-native'; // ActivityIndicator 추가
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
@@ -12,7 +10,6 @@ import dayjs from 'dayjs';
 import RecordingImage from '../assets/recode.png';
 
 const RECORDING_OPTIONS_M4A = {
-  // ... (기존 옵션 유지)
   isMeteringEnabled: true,
   android: {
     extension: '.m4a',
@@ -35,40 +32,40 @@ const RECORDING_OPTIONS_M4A = {
 export default function DiaryWriteScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  // route.params에서 tempDiaryId를 받을 수 있도록 추가
   const { selectedDate, accessToken, tempDiaryId: initialTempDiaryId } = route.params;
 
   const [content, setContent] = useState('');
   const [recording, setRecording] = useState();
   const [isRecording, setIsRecording] = useState(false);
   const [recordedURI, setRecordedURI] = useState(null);
-  const [isLoadingDiary, setIsLoadingDiary] = useState(false);
-  const [currentDiaryId, setCurrentDiaryId] = useState(initialTempDiaryId || null);
-  const [isConvertingVoice, setIsConvertingVoice] = useState(false); // 음성 변환 로딩 상태 추가
+  // const [_permissionResponse, requestPermission] = Audio.usePermissions();
+  const [isLoadingDiary, setIsLoadingDiary] = useState(false); // 임시 저장 일기 로딩 상태
+  const [currentDiaryId, setCurrentDiaryId] = useState(initialTempDiaryId || null); // 현재 작업중인 일기 ID (임시저장된 ID일 수 있음)
+
 
   const BASE_URL = 'http://ceprj.gachon.ac.kr:60021';
 
   const loadTemporaryDiary = useCallback(async (diaryId) => {
-    // ... (기존 로직 유지)
     if (!diaryId) return;
     setIsLoadingDiary(true);
     try {
       console.log(`--- 임시 저장된 일기 불러오기 요청 (ID: ${diaryId}) ---`);
       const response = await fetch(`${BASE_URL}/api/diaries/${diaryId}`, {
         method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(`임시 저장된 일기 불러오기 실패: ${response.status} - ${errorData.message || '내용 확인 불가'}`);
       }
       const diary = await response.json();
+      // API 응답에서 content 필드를 사용한다고 가정
       if (diary && typeof diary.content === 'string') {
         setContent(diary.content);
-        setRecordedURI(null); 
+        setRecordedURI(null); // 불러온 내용은 텍스트이므로 녹음 URI는 초기화
       } else {
+        // transformContent 또는 summary가 있는 경우 fallback (API 명세에 따라 조정 필요)
         const fallbackContent = diary?.transformContent || diary?.summary || '';
         setContent(fallbackContent);
         if (fallbackContent) {
@@ -86,39 +83,37 @@ export default function DiaryWriteScreen() {
   }, [accessToken]);
 
   useEffect(() => {
-    if (initialTempDiaryId) {
-      loadTemporaryDiary(initialTempDiaryId);
-    }
-  }, [initialTempDiaryId, loadTemporaryDiary]);
+  if (initialTempDiaryId) {
+    loadTemporaryDiary(initialTempDiaryId);
+  }
+}, [initialTempDiaryId, loadTemporaryDiary]);
+
 
   useEffect(() => {
-    return () => {
-      if (recording) {
-        if (recording._finalDurationMillis == null) {
-          recording.stopAndUnloadAsync().catch(err =>
-            console.error("Error stopping/unloading recording:", err)
-          );
+  return () => {
+    if (recording) {
+      // recording이 아직 active 상태일 경우에만 중지 시도
+      if (recording._finalDurationMillis == null) {
+        recording.stopAndUnloadAsync().catch(err =>
+          console.error("Error stopping/unloading recording:", err)
+        );
+      }
+    }
+    Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(err =>
+      console.error("Error resetting audio mode:", err)
+    );
+  };
+}, [recording]);
+  const startRecording = async () => {
+    try {
+      const { status } = await Audio.getPermissionsAsync();
+      if (status !== 'granted') {
+        const permission = await requestPermission();
+        if (permission.status !== 'granted') {
+          Alert.alert('권한 거부됨', '마이크 권한이 필요합니다.');
+          return;
         }
       }
-      Audio.setAudioModeAsync({ allowsRecordingIOS: false }).catch(err =>
-        console.error("Error resetting audio mode:", err)
-      );
-    };
-  }, [recording]);
-
-  const startRecording = async () => {
-    if (isConvertingVoice) {
-      Alert.alert("알림", "음성 변환 중에는 녹음을 시작할 수 없습니다.");
-      return;
-    }
-    try {
-      // Expo AV 권한 요청 방식 수정
-      const permission = await Audio.requestPermissionsAsync(); 
-      if (permission.status !== 'granted') {
-        Alert.alert('권한 거부됨', '마이크 권한이 필요합니다.');
-        return;
-      }
-      
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -148,10 +143,6 @@ export default function DiaryWriteScreen() {
   };
 
   const handleRecordToggle = () => {
-    if (isConvertingVoice) {
-        Alert.alert("알림", "음성 변환 중입니다. 잠시 후 시도해주세요.");
-        return;
-    }
     if (isRecording) {
       stopRecording();
     } else {
@@ -171,101 +162,65 @@ export default function DiaryWriteScreen() {
   };
 
   const handleDeleteRecording = () => {
-    if (isConvertingVoice) {
-        Alert.alert("알림", "음성 변환 중에는 삭제할 수 없습니다.");
-        return;
-    }
     setRecordedURI(null);
   };
 
   const convertVoiceToText = async (voiceUri) => {
-    // ... (기존 convertVoiceToText 로직 유지)
-    const formData = new FormData();
-    const fileName = `recording-${Date.now()}.m4a`;
-    const fileType = Platform.OS === 'ios' ? 'audio/m4a' : (Platform.OS === 'android' ? 'audio/m4a' : 'audio/m4a');
-    
-    console.log('Preparing FormData for voice-to-text:');
-    console.log('Original voiceUri:', voiceUri);
-    if (!voiceUri || typeof voiceUri !== 'string' || !voiceUri.startsWith('file://')) {
-    console.error('Invalid or unexpected voiceUri format!');
-    Alert.alert('오류', '음성 파일 경로가 올바르지 않습니다.');
-    throw new Error('Invalid voice URI'); // 여기서 중단하거나 적절히 처리
-  }
-  console.log('fileName:', fileName);
-  console.log('fileType:', fileType);
+  const formData = new FormData();
+  const fileName = voiceUri.split('/').pop();
+  // 서버에서 m4a를 처리할 수 있는지, 또는 어떤 mime type을 기대하는지 확인 (예: 'audio/m4a', 'audio/mp4', 'audio/aac')
+  const fileType = Platform.OS === 'ios' ? 'audio/x-m4a' : 'audio/m4a'; 
 
-    formData.append('file', {
-      uri: voiceUri,
-      name: fileName,
-      type: fileType,
+  formData.append('file', {
+    uri: voiceUri,
+    name: fileName,
+    type: fileType,
+  });
+
+  try {
+    console.log('--- 음성 변환 요청 ---');
+    console.log('Voice-to-text URL:', `${BASE_URL}/api/voice-to-text`);
+    // 개발 중 FormData 내용 확인을 위해 console.log 추가 가능 (실제 파일 내용은 안 보임)
+    // console.log('FormData entries:');
+    // for (let pair of formData.entries()) {
+    //   console.log(pair[0]+ ', ' + pair[1]);
+    // }
+
+    const response = await fetch(`${BASE_URL}/api/voice-to-text`, { // API 경로가 맞는지 확인
+      method: 'POST', // POST 메서드 명시
+      headers: {
+        // 'Content-Type': 'multipart/form-data', // FormData 사용 시 보통 자동으로 설정됨
+        Authorization: `Bearer ${accessToken}`, // API가 인증을 요구한다면 추가
+      },
+      body: formData, // FormData를 body에 전달
     });
 
-    try {
-      console.log('--- 음성 변환 요청 ---');
-      const response = await fetch(`${BASE_URL}/api/voice-to-text`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '오류 메시지 파싱 실패');
-        console.error('음성 변환 API 오류 응답:', response.status, errorText);
-        throw new Error(`음성 변환 서버 오류: ${response.status} - ${errorText || '내용 확인 불가'}`);
-      }
-
-      const result = await response.json();
-      console.log('음성 변환 결과:', result);
-
-      if (result && typeof result.text === 'string') {
-        return result.text;
-      } else {
-        console.error('음성 변환 후 유효하지 않은 텍스트:', result);
-        throw new Error('음성 변환 후 서버로부터 유효한 텍스트를 받지 못했습니다.');
-      }
-    } catch (err) {
-      console.error('convertVoiceToText 함수 내에서 오류 발생:', err);
-      throw err;
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '오류 메시지 파싱 실패'); // 오류 응답이 JSON이 아닐 수 있음
+      console.error('음성 변환 API 오류 응답:', response.status, errorText);
+      throw new Error(`음성 변환 서버 오류: ${response.status} - ${errorText || '내용 확인 불가'}`);
     }
-  };
 
-  // "텍스트로 변환" 버튼 핸들러 함수 추가
-  const handleConvertAndSetText = async () => {
-    if (!recordedURI) {
-      Alert.alert("오류", "변환할 음성 파일이 없습니다.");
-      return;
+    const result = await response.json();
+    console.log('음성 변환 결과:', result);
+
+    if (result && typeof result.text === 'string') {
+      return result.text;
+    } else {
+      console.error('음성 변환 후 유효하지 않은 텍스트:', result);
+      throw new Error('음성 변환 후 서버로부터 유효한 텍스트를 받지 못했습니다.');
     }
-    if (isConvertingVoice) return;
-
-    setIsConvertingVoice(true);
-    // 사용자에게 즉각적인 피드백 (ActivityIndicator가 보이겠지만, 추가적인 Alert도 가능)
-    // Alert.alert("음성 변환 중", "음성을 텍스트로 변환하고 있습니다. 잠시만 기다려주세요...");
-
-    try {
-      const convertedText = await convertVoiceToText(recordedURI);
-      setContent(convertedText);
-      setRecordedURI(null); // 변환 성공 시 녹음된 URI는 비움
-      Alert.alert('변환 완료', '음성이 텍스트로 변환되었습니다. 내용을 확인하고 저장하세요.');
-    } catch (error) {
-      console.error('handleConvertAndSetText 오류:', error);
-      Alert.alert('변환 실패', error.message || '음성을 텍스트로 변환하는 중 오류가 발생했습니다.');
-    } finally {
-      setIsConvertingVoice(false);
-    }
-  };
-
+  } catch (err) {
+    console.error('convertVoiceToText 함수 내에서 오류 발생:', err);
+    // 에러를 다시 던져서 호출한 쪽(handleTemporarySave)의 catch 블록에서 처리하도록 함
+    throw err;
+  }
+};
 
   const handleTemporarySave = async (fromSubmit = false) => {
-    if (isConvertingVoice) {
-      Alert.alert("알림", "음성 변환 중입니다. 잠시 후 다시 시도해주세요.");
-      return { success: false };
-    }
     
     let diaryContent = content.trim();
-    let voiceToConvertUri = recordedURI; 
+    let voiceToConvertUri = recordedURI; // STT 변환 대기중인 URI
 
     if (!diaryContent && !voiceToConvertUri) {
       Alert.alert('내용 없음', '텍스트 내용이나 음성 녹음이 필요합니다.');
@@ -279,71 +234,73 @@ export default function DiaryWriteScreen() {
     let sttPerformedAndNavigates = false;
 
     if (voiceToConvertUri && !diaryContent) {
-      setIsConvertingVoice(true); // STT 시작 시 변환 중 상태로 설정
       try {
+        // fromSubmit 이 true (즉, 등록 과정의 일부)일 때만 즉시 STT 후 화면 전환 시도
+        // 그냥 "임시저장" 버튼일때는 STT 결과를 content에 채우고 URI를 null로 만들어 텍스트로 임시저장되게 유도.
         if (fromSubmit) {
-            // Alert.alert("음성 변환 중", "음성을 텍스트로 변환하고 있습니다. 잠시만 기다려주세요..."); // handleSubmit에서 이미 안내
+            Alert.alert("음성 변환 중", "음성을 텍스트로 변환하고 있습니다. 잠시만 기다려주세요...");
         }
         const convertedText = await convertVoiceToText(voiceToConvertUri);
         diaryContent = convertedText;
-        setContent(diaryContent); 
-        setRecordedURI(null);    
-        voiceToConvertUri = null; 
+        setContent(diaryContent); // STT 결과를 content에 반영
+        setRecordedURI(null);    // STT 완료 후 recordedURI는 비움
+        voiceToConvertUri = null; // 변환 완료
         if(fromSubmit) sttPerformedAndNavigates = true;
         else Alert.alert("음성 변환 완료", "음성이 텍스트로 변환되었습니다. 내용을 확인 후 다시 임시저장 또는 등록해주세요.");
         
-        if (!fromSubmit) {
-            setIsConvertingVoice(false); // STT 완료 시 변환 중 상태 해제
-            return { success: true, sttJustCompleted: true };
-        }
+        // fromSubmit이 false (순수 임시저장)이고, STT만 한 경우, 여기서 함수를 종료하고 사용자에게 텍스트 확인 후 다시 임시저장 유도
+        if (!fromSubmit) return { success: true, sttJustCompleted: true };
 
       } catch (error) {
-        setIsConvertingVoice(false); // 오류 발생 시에도 변환 중 상태 해제
         Alert.alert('음성 변환 실패', error.message || '음성을 텍스트로 변환하는 중 오류가 발생했습니다. 텍스트로 직접 입력해주세요.');
         return { success: false };
-      } finally {
-          if (fromSubmit || sttPerformedAndNavigates) { // fromSubmit으로 STT를 한 경우엔 여기서 false로 만들면 안됨. 최종 저장후에.
-              // 단, fromSubmit이 아니고 sttJustCompleted된 경우는 위에서 false처리.
-          } else if (!sttPerformedAndNavigates) { // 순수 임시저장에서 STT만 한 경우
-            setIsConvertingVoice(false);
-          }
       }
     }
 
     if (!diaryContent) {
       Alert.alert('내용 없음', '임시 저장할 내용이 없습니다.');
-      if(isConvertingVoice && fromSubmit) setIsConvertingVoice(false); // STT 후 내용이 없는 경우도 해제
       return { success: false };
     }
-    
+
     try {
       const requestBody = {
-        
         writtenDate: selectedDate,
         content: diaryContent,
+        // 만약 이어쓰기 중인 임시저장 건을 다시 임시저장하는 경우, 기존 ID를 포함할 수 있음 (백엔드 정책에 따라)
+        // diaryId: currentDiaryId, // 이 부분은 백엔드에서 기존 ID로 덮어쓰기를 지원하는지에 따라 결정
       };
-      console.log('등록 요청 바디:', requestBody);
+
       console.log('--- 일기 임시 저장 요청 (JSON) ---');
+      console.log('URL:', `${BASE_URL}/api/diaries?temp=true`);
+      console.log('Body:', JSON.stringify(requestBody));
+
       const res = await fetch(`${BASE_URL}/api/diaries?temp=true`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(requestBody),
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        console.error('임시 저장 서버 오류 응답:', errorData);
         throw new Error(`임시 저장 실패: ${res.status} - ${errorData.message || '내용 확인 불가'}`);
       }
       const resJson = await res.json();
       const { diaryId } = resJson;
-      setCurrentDiaryId(diaryId); 
+      setCurrentDiaryId(diaryId); // 새로 생성되거나 업데이트된 diaryId로 상태 업데이트
 
+      // fromSubmit이 true일 때만 화면 전환 (주로 등록 과정에서 호출될 때)
       if (fromSubmit || sttPerformedAndNavigates) {
-        Alert.alert('임시 저장 완료!'); 
+        Alert.alert('임시 저장 완료!'); // DiaryConfirm으로 이동하기 전 알림
         navigation.navigate('DiaryConfirm', { diaryId, accessToken, selectedDate });
       } else {
+        // fromSubmit이 false이면 (순수 "임시저장" 버튼 클릭 시) 화면 전환 없이 알림만
         Alert.alert('임시 저장 완료!', '작성 중인 내용이 임시 저장되었습니다.');
       }
+      // MainHome으로 돌아갈 때 업데이트를 알리기 위한 파라미터 설정 (선택적)
       navigation.setParams({ diaryUpdated: true, updatedDate: selectedDate });
       return { success: true, diaryId };
 
@@ -351,21 +308,15 @@ export default function DiaryWriteScreen() {
       console.error('임시 저장 API 호출 오류:', err);
       Alert.alert('임시 저장 오류', err.message);
       return { success: false };
-    } finally {
-        if(isConvertingVoice) setIsConvertingVoice(false); // 모든 작업 완료 후 변환 중 상태 최종 해제
     }
   };
 
   const handleTemporarySaveAndGuide = async () => {
+    // 이 함수는 음성일기 "등록" 시 호출됨. STT -> 임시저장 -> DiaryConfirm 이동
     await handleTemporarySave(true);
   };
 
   const handleSubmit = async () => {
-    if (isConvertingVoice) {
-      Alert.alert("알림", "음성 변환이 진행 중입니다. 잠시 후 다시 시도해주세요.");
-      return;
-    }
-
     const currentContent = content.trim();
     const currentRecordedURI = recordedURI;
 
@@ -379,50 +330,55 @@ export default function DiaryWriteScreen() {
       return;
     }
 
+    // 음성 일기 등록 시: STT -> 임시 저장 -> DiaryConfirm 화면으로 안내 (handleTemporarySaveAndGuide 사용)
     if (currentRecordedURI && !currentContent) {
       Alert.alert(
         "음성 일기 등록 안내",
         "음성 일기는 텍스트로 변환된 후 '임시저장' 과정을 거쳐 최종 확인됩니다. 계속하시겠습니까?",
         [
           { text: "취소", style: "cancel" },
-          { 
-            text: "확인 후 진행", 
-            onPress: () => {
-              // Alert.alert("음성 변환 중", "음성을 텍스트로 변환하고 있습니다. 잠시만 기다려주세요..."); // handleTemporarySave에서 처리
-              handleTemporarySaveAndGuide();
-            }
-          }
+          { text: "확인 후 진행", onPress: handleTemporarySaveAndGuide } // 여기서 true를 넘겨 STT 후 화면 이동
         ]
       );
       return;
     }
 
+    // 텍스트 일기 등록 시: 바로 temp=false로 등록
     if (currentContent && !currentRecordedURI) {
       try {
         const requestBody = {
-          writtenDate: dayjs(selectedDate).format('YYYY-MM-DD'),
+          writtenDate: selectedDate,
           content: currentContent,
+          // 이어쓰던 임시 일기를 최종 등록하는 경우, 해당 ID를 함께 보낼 수 있음 (백엔드 정책에 따라)
+          // diaryId: currentDiaryId, 
         };
 
-        if (!currentContent || currentContent.length < 5) {
-          Alert.alert("내용 부족", "일기 내용이 너무 짧거나 비어있습니다.");
-          return;
-        }
         console.log('--- 일기 등록 요청 (JSON) ---');
-        console.log('요청 바디:', JSON.stringify(requestBody)); // 전송 전 실제 값 확인
-        const response = await fetch(`${BASE_URL}/api/diaries?temp=false`, {
+        console.log('URL:', `${BASE_URL}/api/diaries?temp=false`); // 최종 등록
+        console.log('Body:', JSON.stringify(requestBody));
+
+        const response = await fetch(`${BASE_URL}/api/diaries?temp=false`, { // temp=false
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.error('등록 서버 오류 응답:', errorData);
           throw new Error(`서버 오류: ${response.status} - ${errorData.message || '내용 확인 불가'}`);
         }
+
         const resJson = await response.json();
         const { diaryId } = resJson;
+
         Alert.alert('일기 등록 완료!');
+        // MainHome으로 돌아갈 때 업데이트를 알리기 위한 파라미터 설정
+        // navigation.navigate('MainHome', { diaryUpdated: true, selectedDateForUpdate: selectedDate });
+        // 위 대신 DiaryConfirm으로 이동
         navigation.navigate('DiaryConfirm', { diaryId, accessToken, selectedDate });
       } catch (err) {
         console.error('등록 API 호출 오류:', err);
@@ -444,8 +400,8 @@ export default function DiaryWriteScreen() {
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Text style={styles.backButton}>{'<'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSubmit} disabled={isConvertingVoice || isLoadingDiary}>
-              <Text style={[styles.submitText, (isConvertingVoice || isLoadingDiary) && styles.disabledText]}>등록</Text>
+            <TouchableOpacity onPress={handleSubmit}>
+              <Text style={styles.submitText}>등록</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.metaInfoRow}>
@@ -472,33 +428,17 @@ export default function DiaryWriteScreen() {
                   <Text style={styles.recordingStatusText}>AI 음성변환</Text>
                 </View>
               ) : recordedURI ? ( 
-                // --- 수정된 오디오 정보 및 "텍스트로 변환" 버튼 영역 ---
-                <View style={styles.audioPlaybackContainer}>
+                <View style={styles.audioInfoContainer}>
                   <View style={styles.audioInfo}>
                     <MaterialIcons name="graphic-eq" size={24} color="#3C5741" style={{ marginRight: 10 }} />
                     <Text style={styles.audioFileName} numberOfLines={1}>
                       {recordedURI.split('/').pop()}
                     </Text>
-                    <TouchableOpacity onPress={handleDeleteRecording} disabled={isConvertingVoice}>
-                      <MaterialIcons name="delete" size={24} color={isConvertingVoice ? "#B0B0B0" : "#D32F2F"} />
+                    <TouchableOpacity onPress={handleDeleteRecording}>
+                      <MaterialIcons name="delete" size={24} color="#D32F2F" />
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={handleConvertAndSetText}
-                    style={[styles.convertToTextButton, isConvertingVoice && styles.disabledButtonBackground]}
-                    disabled={isConvertingVoice}
-                  >
-                    {isConvertingVoice ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }}/>
-                    ) : (
-                      <MaterialIcons name="transform" size={20} color="white" style={{ marginRight: 8 }} />
-                    )}
-                    <Text style={styles.convertToTextButtonText}>
-                      {isConvertingVoice ? '변환 중...' : '텍스트로 변환'}
-                    </Text>
-                  </TouchableOpacity>
                 </View>
-                // --- 여기까지 수정 ---
               ) : (
                 <TextInput
                   style={[styles.diaryText, { marginBottom: 30 }]}
@@ -507,7 +447,7 @@ export default function DiaryWriteScreen() {
                   placeholder="오늘은 무슨일이 있었어?"
                   value={content} 
                   onChangeText={setContent}
-                  editable={!isRecording && !isConvertingVoice} // 변환 중에는 편집 불가
+                  editable={!isRecording} 
                 />
               )}
             </ScrollView>
@@ -520,28 +460,21 @@ export default function DiaryWriteScreen() {
           style={[
             styles.bottomBarButton,
             styles.voiceRecordButton,
-            isRecording ? styles.voiceRecordButtonRecording : (recordedURI ? styles.voiceRecordButtonChange : null),
-            (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI)) && styles.disabledButtonBackground // 조건부 비활성화 스타일
+            isRecording ? styles.voiceRecordButtonRecording : (recordedURI ? styles.voiceRecordButtonChange : null)
           ]}
           onPress={handleRecordToggle}
-          disabled={(!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary || isConvertingVoice}
+          disabled={(!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary}
         >
           <MaterialIcons
             name={isRecording ? 'stop' : (recordedURI ? 'autorenew' : 'mic')}
             size={20}
-            color={
-                (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI))
-                  ? "#FFFFFF"
-                  : ((isRecording || recordedURI)
-                    ? "white"
-                    : "#3C5741")
-              }
+            color={ (content.trim() && !isRecording && !recordedURI) ? "#B0B0B0" : ((isRecording || recordedURI) ? "white" : "#3C5741") }
           />
           <Text style={[
               styles.bottomBarButtonText,
               styles.voiceRecordButtonText,
               (isRecording || recordedURI) && { color: "white" }, 
-              (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI)) && { color: "#FFFFFF" } 
+              (content.trim() && !isRecording && !recordedURI) && { color: "#B0B0B0" } 
             ]}
           >
             {isRecording ? '녹음 중지' : recordedURI ? '녹음 변경' : '음성으로 작성'}
@@ -549,25 +482,25 @@ export default function DiaryWriteScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity 
-            style={[
-                styles.bottomBarButton, 
-                styles.tempSaveButton,
-                ((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice) && styles.disabledButtonLook // 텍스트 색상만 변경
-            ]}
+            style={[styles.bottomBarButton, styles.tempSaveButton]}
+            // "임시저장" 버튼은 항상 fromSubmit=false로 호출
             onPress={async () => {
                 const result = await handleTemporarySave(false);
+                if (result.success && result.sttJustCompleted) {
+                    // STT만 완료된 경우, 사용자에게 추가 액션 유도 (이미 Alert 있음)
+                }
             }}
-            disabled={(!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice } 
+            disabled={(!content.trim() && !recordedURI) || isLoadingDiary || isRecording } 
         >
           <Text style={[
               styles.bottomBarButtonText,
               styles.tempSaveButtonText,
-              ((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice) && { color: "#B0B0B0"}
+              ((!content.trim() && !recordedURI) || isLoadingDiary || isRecording) && { color: "#B0B0B0"}
             ]}
           >
             임시저장
           </Text>
-          <MaterialIcons name="chevron-right" size={24} color={((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice) ? "#B0B0B0" : "#8A8A8A"} />
+          <MaterialIcons name="chevron-right" size={24} color={((!content.trim() && !recordedURI) || isLoadingDiary || isRecording) ? "#B0B0B0" : "#8A8A8A"} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -577,12 +510,12 @@ export default function DiaryWriteScreen() {
 const screenHeight = Dimensions.get('window').height;
 
 const styles = StyleSheet.create({
-  // ... (기존 스타일 대부분 유지) ...
-  container: { 
+  // ... (기존 스타일 유지) ...
+  container: { // 기존 스타일과 동일
     flex: 1,
     backgroundColor: '#E6F0E7',
   },
-  whiteBox: { 
+  whiteBox: { // 기존 스타일과 동일
     flex: 1, 
     backgroundColor: '#fff',
     borderTopLeftRadius: 50,
@@ -598,45 +531,42 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  navRow: { 
+  navRow: { // 기존 스타일과 동일
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 2,
   },
-  backButton: { 
+  backButton: { // 기존 스타일과 동일
     fontSize: 24,
     fontWeight: '600', 
   },
-  submitText: { 
+  submitText: { // 기존 스타일과 동일
     fontSize: 20,
     fontWeight: '450', 
     color: '#3C5741',
     paddingHorizontal: 10,
     paddingVertical: 10, 
   },
-  disabledText: { // 등록 버튼 비활성화 시 텍스트 색상
-    color: '#B0B0B0',
-  },
-  metaInfoRow: { 
+  metaInfoRow: { // 기존 스타일과 동일
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 14,
   },
-  metaTextGroup: { 
+  metaTextGroup: { // 기존 스타일과 동일
     marginLeft: 12, 
   },
-  date: { 
+  date: { // 기존 스타일과 동일
     fontSize: 28,
     fontWeight: '600', 
   },
-  divider: { 
+  divider: { // 기존 스타일과 동일
     height: 1,
     backgroundColor: '#C6C6C6',
     marginVertical: 15,
     marginHorizontal: 10,
   },
-  diaryText: { 
+  diaryText: { // 기존 스타일과 동일
     fontSize: 16,
     lineHeight: 24,
     color: '#333',
@@ -646,38 +576,30 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     minHeight: 200, 
   },
-  recordingContainer: { 
+  recordingContainer: { // 기존 스타일과 동일
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     minHeight: 200, 
     paddingVertical: 20,
   },
-  recordingImage: { 
+  recordingImage: { // 기존 스타일과 동일
     width: 100,
     height: 100,
     resizeMode: 'contain',
   },
-  recordingStatusText: { 
-    color: '#3C5741', // 색상 통일성 있게 변경
+  recordingStatusText: { // 기존 스타일과 동일
+    color: '#F44336', 
     marginTop: 15,
     fontSize: 16,
     fontWeight: '500',
   },
-  // --- 오디오 정보 및 변환 버튼 관련 스타일 ---
-  audioPlaybackContainer: { // 오디오 정보와 변환 버튼을 감싸는 컨테이너
+  audioInfoContainer: { // 기존 스타일과 동일
     flex: 1,
     minHeight: 200, 
-    justifyContent: 'center', // 내부 요소들을 수직 중앙 정렬
-    alignItems: 'center', // 내부 요소들을 수평 중앙 정렬
-    paddingVertical: 20,
+    justifyContent: 'center',
   },
-  audioInfoContainer: { 
-    width: '100%', // 너비를 꽉 채우도록
-    // 기존 audioInfoContainer는 flex:1, minHeight:200, justifyContent: 'center' 였음
-    // 이제는 audioPlaybackContainer가 그 역할을 하고, 여기서는 audioInfo만 감쌈
-  },
-  audioInfo: { 
+  audioInfo: { // 기존 스타일과 동일
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -686,47 +608,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    marginVertical: 10, // 위아래 마진
-    width: '90%', // 화면 폭의 90%
-    alignSelf: 'center', // 스스로 중앙 정렬
+    marginVertical: 10,
   },
-  audioFileName: { 
+  audioFileName: { // 기존 스타일과 동일
     flex: 1,
     fontSize: 14,
     color: '#333',
     marginHorizontal: 10,
   },
-  convertToTextButton: { // "텍스트로 변환" 버튼 스타일
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3C5741', 
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25, 
-    marginTop: 15, 
-    minWidth: '60%', 
-    alignSelf: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-  convertToTextButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  disabledButtonBackground: { // 비활성화 시 배경색 변경 (텍스트로 변환 버튼 등)
-    backgroundColor: '#B0B0B0',
-  },
-  disabledButtonLook: { // 비활성화 시 모양만 (텍스트 색상 변경, 배경은 투명 유지 - 임시저장 버튼용)
-    // 이 스타일은 TouchableOpacity의 style prop에 직접 적용하기 보다, 내부 Text 컴포넌트의 색상을 바꾸는 용도로 사용
-  },
-  // --- 하단 바 스타일 ---
-  bottomBarContainer: { 
+  bottomBarContainer: { // 기존 스타일과 동일
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -737,42 +627,43 @@ const styles = StyleSheet.create({
     borderTopColor: '#DCDCDC',
     paddingBottom: Platform.OS === 'ios' ? 30 : 15, 
   },
-  bottomBarButton: { 
+  bottomBarButton: { // 기존 스타일과 동일
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 20,
   },
-  bottomBarButtonText: { 
+  bottomBarButtonText: { // 기존 스타일과 동일
     fontSize: 15,
     fontWeight: '500', 
     marginLeft: 8,
   },
-  voiceRecordButton: { 
+  voiceRecordButton: { // 기존 스타일과 동일
     backgroundColor: '#E8F0E9', 
   },
-  voiceRecordButtonRecording: { 
+  voiceRecordButtonRecording: { // 기존 스타일과 동일
     backgroundColor: '#D32F2F', 
   },
-  voiceRecordButtonChange: { 
+  voiceRecordButtonChange: { // 기존 스타일과 동일
     backgroundColor: '#FFA000', 
   },
-  voiceRecordButtonText: { 
+  voiceRecordButtonText: { // 기존 스타일과 동일
     color: '#3C5741', 
   },
-  tempSaveButton: { 
+  tempSaveButton: { // 기존 스타일과 동일
     backgroundColor: 'transparent', 
   },
-  tempSaveButtonText: { 
+  tempSaveButtonText: { // 기존 스타일과 동일
     color: '#555555',
     marginRight: 2,
   },
+  // 로딩 인디케이터를 위한 스타일 추가
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 200, 
+    minHeight: 200, // diaryText와 유사한 높이
   },
   loadingText: {
     marginTop: 10,
@@ -780,4 +671,3 @@ const styles = StyleSheet.create({
     color: '#3C5741',
   }
 });
-// --- END OF FILE DiaryWriteScreen.js ---

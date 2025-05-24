@@ -31,7 +31,7 @@ export default function SignUpScreen({ navigation }) {
         setIsEmailVerified(false); // 이메일이 변경되면 확인 상태 초기화
     };
 
-    const handleEmailCheck = async () => {
+     const handleEmailCheck = async () => {
         if (!email.trim()) {
             Alert.alert('알림', '이메일을 입력해주세요.');
             return;
@@ -42,49 +42,62 @@ export default function SignUpScreen({ navigation }) {
             return;
         }
 
+        console.log('handleEmailCheck: Started. Setting isCheckingEmail to true.');
         setIsCheckingEmail(true);
-        setIsEmailVerified(false); // 새로운 확인 시작
+        setIsEmailVerified(false);
         try {
             const encodedEmail = encodeURIComponent(email);
-            const response = await fetch(`http://ceprj.gachon.ac.kr:60021/api/auth/exist/${encodedEmail}`);
+            const apiUrl = `http://ceprj.gachon.ac.kr:60021/api/auth/exist/${encodedEmail}`;
+            console.log('Email Check - API URL:', apiUrl);
+            const response = await fetch(apiUrl);
             
             console.log('Email Check - Response Status:', response.status);
             console.log('Email Check - Response OK?:', response.ok);
 
-            const responseText = await response.text(); // 1. 응답 본문을 텍스트로 먼저 읽습니다.
+            const responseText = await response.text();
             console.log('Email Check - Response Text:', responseText);
 
             if (response.ok) {
-                let emailExists = false;
+                let emailExists = false; // 기본값을 false로 설정
                 let parsedData = null;
 
                 try {
-                    parsedData = JSON.parse(responseText); // 2. 읽은 텍스트를 JSON으로 파싱 시도
+                    parsedData = JSON.parse(responseText);
                     console.log('Email Check - Parsed JSON Data:', parsedData);
 
-                    // API가 { "isExist": boolean } 또는 { "data": { "isExist": boolean } } 형태의 JSON을 반환하는 경우
-                    if (parsedData && typeof parsedData.exist !== 'undefined') {
-                        emailExists = parsedData.isExist;
-                    } else if (parsedData && parsedData.data && typeof parsedData.data.isExist !== 'undefined') {
-                        emailExists = parsedData.data.isExist;
-                    } else {
-                        // JSON으로 파싱은 되었으나 예상한 구조가 아닌 경우, 또는 API가 단순 텍스트 "true"/"false"를 반환하는 경우
-                        // responseText가 "true" 또는 "false" 문자열인지 확인
-                        if (responseText.toLowerCase() === 'true') {
+                    if (parsedData && typeof parsedData.exist === 'boolean') { // 'exist' 키가 있고, 그 값이 boolean인지 확인
+                        emailExists = parsedData.exist;
+                        console.log(`Email Check - 'parsedData.exist' is boolean: ${parsedData.exist}. emailExists set to: ${emailExists}`);
+                    } else if (parsedData && typeof parsedData.exist !== 'undefined') {
+                        // 'exist' 키는 있지만 boolean이 아닌 경우 (예: 문자열 "true")
+                        console.warn(`Email Check - 'parsedData.exist' is not a boolean, it's: ${typeof parsedData.exist}, value: ${parsedData.exist}. Attempting conversion.`);
+                        if (String(parsedData.exist).toLowerCase() === 'true') {
                             emailExists = true;
-                        } else if (responseText.toLowerCase() === 'false') {
+                        } else if (String(parsedData.exist).toLowerCase() === 'false') {
                             emailExists = false;
                         } else {
-                             console.warn('Email check: JSON parsed but unexpected structure, or non-boolean text.', responseText);
-                             Alert.alert('알림', '이메일 확인 응답 형식을 분석할 수 없습니다.');
-                             setIsEmailVerified(false); // 안전하게 false로 설정
-                             // setIsCheckingEmail(false); // finally에서 처리됨
-                             return; // finally 블록으로 이동
+                            console.error('Email Check - parsedData.exist is neither boolean nor "true"/"false" string.');
+                            Alert.alert('알림', '이메일 확인 응답이 예상치 못한 형식입니다. (exist 값 오류)');
+                            setIsEmailVerified(false);
+                            return; // finally로 이동
                         }
+                        console.log(`Email Check - after string conversion, emailExists set to: ${emailExists}`);
+                    } else {
+                         console.warn('Email Check - JSON parsed but "exist" key not found or undefined.', parsedData);
+                         // "exist" 키가 없는 경우, 혹시 responseText 자체가 "true" / "false"인지 확인 (가능성 낮음)
+                         if (responseText.toLowerCase() === 'true') {
+                            emailExists = true;
+                         } else if (responseText.toLowerCase() === 'false') {
+                            emailExists = false;
+                         } else {
+                            Alert.alert('알림', '이메일 확인 응답 형식을 분석할 수 없습니다. ("exist" 키 부재)');
+                            setIsEmailVerified(false);
+                            return; // finally로 이동
+                         }
+                         console.log(`Email Check - after direct responseText check, emailExists set to: ${emailExists}`);
                     }
                 } catch (jsonError) {
-                    // JSON 파싱 실패 시, responseText가 단순 문자열 "true" 또는 "false"인지 확인
-                    console.log('Email Check - JSON.parse error, treating as plain text:', jsonError.message);
+                    console.error('Email Check - JSON.parse error:', jsonError.message, 'Treating responseText as plain text.');
                     if (responseText.toLowerCase() === 'true') {
                         emailExists = true;
                     } else if (responseText.toLowerCase() === 'false') {
@@ -92,37 +105,60 @@ export default function SignUpScreen({ navigation }) {
                     } else {
                         Alert.alert('오류', '이메일 확인 중 응답 형식이 올바르지 않습니다 (텍스트도 true/false가 아님).');
                         setIsEmailVerified(false);
-                        // setIsCheckingEmail(false); // finally에서 처리됨
-                        return; // finally 블록으로 이동
+                        return; // finally로 이동
                     }
+                    console.log(`Email Check - after JSON.parse error and plain text check, emailExists set to: ${emailExists}`);
                 }
 
-                if (emailExists) {
-                    Alert.alert('알림', '이미 사용 중인 이메일입니다.');
+                // emailExists 값과 타입 최종 확인
+                console.log('Email Check - Final value of emailExists before alert:', emailExists);
+                console.log('Email Check - Final type of emailExists before alert:', typeof emailExists);
+
+                if (emailExists === true) { // 명시적으로 true와 비교
+                    try {
+                        console.log("Attempting to show '이미 사용 중인 이메일입니다.' alert.");
+                        Alert.alert('알림', '이미 사용 중인 이메일입니다.');
+                        console.log("'이미 사용 중인 이메일입니다.' alert should have been shown.");
+                    } catch (alertError) {
+                        console.error("Error showing '이미 사용 중인 이메일입니다.' alert:", alertError);
+                    }
                     setIsEmailVerified(false);
-                } else {
-                    Alert.alert('알림', '사용 가능한 이메일입니다.');
+                    console.log("setIsEmailVerified(false) called.");
+                } else if (emailExists === false) { // 명시적으로 false와 비교
+                    try {
+                        console.log("Attempting to show '사용 가능한 이메일입니다.' alert.");
+                        Alert.alert('알림', '사용 가능한 이메일입니다.');
+                        console.log("'사용 가능한 이메일입니다.' alert should have been shown.");
+                    } catch (alertError) {
+                        console.error("Error showing '사용 가능한 이메일입니다.' alert:", alertError);
+                    }
                     setIsEmailVerified(true);
+                    console.log("setIsEmailVerified(true) called.");
+                } else {
+                    // emailExists가 true도 false도 아닌 경우 (로직 오류 가능성)
+                    console.error('Email Check - emailExists is neither true nor false. Value:', emailExists);
+                    Alert.alert('오류', '이메일 확인 로직에 문제가 발생했습니다. 관리자에게 문의하세요.');
+                    setIsEmailVerified(false);
                 }
-            } else {
-                // 서버 에러 (4xx, 5xx)
+
+            } else { // response.ok 가 false 인 경우 (서버 에러)
                 let errorMessage = `이메일 중복 확인 실패 (상태 코드: ${response.status})`;
                 try {
-                    const errData = JSON.parse(responseText); // 에러 응답도 JSON일 수 있음
+                    const errData = JSON.parse(responseText);
                     errorMessage = errData.message || errData.error || (responseText || errorMessage);
                 } catch (e) {
-                    // 에러 응답이 JSON이 아닐 경우, responseText 자체를 사용 (이미 위에서 할당됨)
                     if (responseText) errorMessage = responseText;
                 }
+                console.error('Email Check - Server error. Message:', errorMessage);
                 Alert.alert('오류', errorMessage);
                 setIsEmailVerified(false);
             }
-        } catch (error) {
-            // 네트워크 오류 또는 fetch 자체의 문제 (위의 response.text() 이전 단계에서 발생 가능)
-            console.error('Email check fetch error:', error); // 이 로그가 사용자에게 표시된 에러입니다.
+        } catch (error) { // fetch 자체의 오류 또는 네트워크 오류
+            console.error('Email check - Outer catch error:', error.message, error.stack);
             Alert.alert('오류', '이메일 중복 확인 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.');
             setIsEmailVerified(false);
         } finally {
+            console.log('handleEmailCheck: Finally block. Setting isCheckingEmail to false.');
             setIsCheckingEmail(false);
         }
     };

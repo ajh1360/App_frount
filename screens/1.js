@@ -227,18 +227,7 @@ export default function DiaryWriteScreen() {
       } catch (error) {
         console.error("Error stopping sound:", error);
       }
-      // setIsPlaying(false); // stopAsync 후에는 setOnPlaybackStatusUpdate가 didJustFinish를 호출하지 않을 수 있으므로 여기서 직접 false로 설정 안함
-      // 혹은, 여기서 unloadAsync까지 해버리고 sound, isPlaying 상태를 초기화할 수도 있습니다.
-      // 일단은 토글처럼 동작하도록 stop만 호출하고, 사용자가 다시 누르면 처음부터 재생하도록 유도
-      // 좀 더 나은 UX는 재생 위치를 기억하거나, 일시정지/재개 기능을 구현하는 것입니다.
-      // 여기서는 간단히 중지 후 다시 누르면 새로 재생하도록 합니다.
-      // 재생 상태는 onPlaybackStatusUpdate에 의해 관리되도록 합니다.
-      // 단, stopAsync() 호출 시 didJustFinish가 true가 안될 수 있으므로,
-      // isPlaying 상태를 명시적으로 false로 변경하는 것이 좋을 수 있습니다.
-      // 여기서는 상태 업데이트 콜백에 의존해봅니다. 만약 콜백이 원하는대로 동작 안하면 수정 필요.
       setIsPlaying(false); // 명시적으로 재생 상태 변경
-      // await sound.unloadAsync(); // 여기서 언로드하면 다시 재생시 로드해야 함.
-      // setSound(undefined);
       return;
     }
 
@@ -292,6 +281,8 @@ export default function DiaryWriteScreen() {
 
 
   const convertVoiceToText = async (voiceUri) => {
+
+    
     // 재생 중인 사운드가 있다면 변환 전 중지
     if (sound && isPlaying) {
         await sound.stopAsync();
@@ -488,9 +479,14 @@ export default function DiaryWriteScreen() {
     setIsLoadingDiary(true); // 임시 저장 자체에 대한 로딩 (STT 로딩과 별개)
     try {
       const requestBody = {
-        writtenDate: selectedDate,
+        writtenDate: dayjs(selectedDate).format('YYYY-MM-DD'),
         content: diaryContent,
       };
+      if (currentDiaryId) {
+        requestBody.diaryId = currentDiaryId;
+      }
+
+      
 
       console.log('--- 일기 임시 저장 요청 (JSON) ---');
       console.log('URL:', `${BASE_URL}/api/diaries?temp=true`);
@@ -576,15 +572,21 @@ export default function DiaryWriteScreen() {
     if (currentContent && !currentRecordedURI) {
       setIsLoadingDiary(true); // 최종 등록 로딩
       try {
+        // --- 수정 시작 ---
         const requestBody = {
           writtenDate: selectedDate,
           content: currentContent,
-          diaryId: currentDiaryId,
         };
+
+        // currentDiaryId가 존재하고 null이 아닐 경우에만 requestBody에 추가
+        if (currentDiaryId) {
+          requestBody.diaryId = currentDiaryId;
+        }
+        // --- 수정 끝 ---
 
         console.log('--- 일기 등록 요청 (JSON) ---');
         console.log('URL:', `${BASE_URL}/api/diaries?temp=false`);
-        console.log('Body:', JSON.stringify(requestBody));
+        console.log('Body:', JSON.stringify(requestBody)); // 수정된 requestBody 확인
 
         const response = await fetch(`${BASE_URL}/api/diaries?temp=false`, {
           method: 'POST',
@@ -710,7 +712,7 @@ export default function DiaryWriteScreen() {
             styles.voiceRecordButton,
             isRecording ? styles.voiceRecordButtonRecording : (recordedURI ? styles.voiceRecordButtonChange : null),
             // content.trim() 호출 전 content가 문자열인지, 그리고 null/undefined가 아닌지 확인
-            (((content && typeof content === 'string' ? !!content.trim() : false)) && !isRecording && !recordedURI) || isLoadingDiary || isConvertingVoice) && styles.disabledButton
+            (((content && typeof content === 'string' ? !!content.trim() : false) && !isRecording && !recordedURI) || isLoadingDiary || isConvertingVoice) && styles.disabledButton
           ]}
           onPress={handleRecordToggle}
           disabled={((content && typeof content === 'string' ? !!content.trim() : false) && !isRecording && !recordedURI) || isLoadingDiary || isConvertingVoice}
