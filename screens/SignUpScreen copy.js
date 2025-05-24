@@ -97,31 +97,12 @@ try {
         throw new Error(errData.message || `서버 오류: ${response.status}`);
     }
 
-    // 성공 응답 본문 확인
-    const data = await response.json();
-    console.log('Server Success Data:', data); // 성공 시 서버가 보낸 데이터 (accessToken 포함)
-    const accessToken = data.accessToken;
 
-    // 토큰 존재 여부 확인
-    if (!accessToken) {
-        console.error('Access Token is missing in server response!');
-        Alert.alert('회원가입 문제', '서버로부터 액세스 토큰을 받지 못했습니다.');
-        return; // 토큰 없으면 진행 중단
-    }
-    console.log('Received Access Token:', accessToken);
-
-    Alert.alert('회원가입 성공', '환영합니다!', [
-        {
-            text: '확인',
-            onPress: () => {
-                console.log('Navigating to Login screen...');
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'Login', params: { accessToken } }],
-                });
-            }
-        }
-    ]);
+    console.log('회원가입 성공 - 로그인 페이지로 이동 중');
+    navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+    });
 
     
     } catch (err) {

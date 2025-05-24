@@ -1,5 +1,3 @@
-// --- START OF FILE DiaryWriteScreen.js ---
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,View,Text,TextInput,TouchableOpacity,Alert,ScrollView,Image,Platform,StatusBar,Dimensions,KeyboardAvoidingView,StyleSheet, ActivityIndicator
@@ -960,4 +958,3 @@ const styles = StyleSheet.create({
     color: '#3C5741',
   }
 });
-// --- END OF FILE DiaryWriteScreen.js ---

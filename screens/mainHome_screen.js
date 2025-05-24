@@ -455,9 +455,9 @@ export default function MainHome({ route }) {
                       <TouchableOpacity style={[modalStyles.modalButton, modalStyles.deleteButton]} onPress={handleModalDeleteAndWriteNew}>
                         <Text style={modalStyles.modalButtonText}>지우고 새로 쓰기</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={[modalStyles.modalButton, modalStyles.cancelButton]} onPress={handleModalCancel}>
+                      {/* <TouchableOpacity style={[modalStyles.modalButton, modalStyles.cancelButton]} onPress={handleModalCancel}>
                         <Text style={modalStyles.modalButtonText}>취소</Text>
-                      </TouchableOpacity>
+                      </TouchableOpacity> */}
                     </View>
                   </View>
                 </TouchableWithoutFeedback>
@@ -525,24 +525,27 @@ const modalStyles = ModalStyleSheet.create({
     lineHeight: 22,
   },
   modalButtonContainer: {
-    width: '100%',
-  },
-  modalButton: {
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 12,
-    width: '100%',
-  },
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  gap: 10,
+},
+modalButton: {
+  flexBasis: '48%',
+  paddingVertical: 10,
+  borderRadius: 8,
+  alignItems: 'center',
+  marginBottom: 10,
+},
   continueButton: {
     backgroundColor: '#28a745', // 좀 더 부드러운 초록색
   },
   deleteButton: {
     backgroundColor: '#dc3545', // 좀 더 부드러운 빨간색
   },
-  cancelButton: {
-    backgroundColor: '#6c757d', // 좀 더 부드러운 회색
-  },
+  // cancelButton: {
+  //   backgroundColor: '#6c757d', // 좀 더 부드러운 회색
+  // },
   modalButtonText: {
     color: 'white',
     fontSize: 16,

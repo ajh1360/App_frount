@@ -9,8 +9,7 @@ import WrittenDiaryDetailScreen from './screens/writtenDiaryNFeedback_screen';
 import DiaryConfirmScreen from './screens/DiaryConfirm_screen';
 import StartScreen from './screens/StartScreen'; // Import the new StartScreen
 import LoginScreen from './screens/Login';
-import SignUpScreen from './screens/SignUpScreen';
-import diaryPostSample from './screens/diaryPostSample';
+import SignUpScreen from './screens/SignUpScreen';;
 import DiaryModifyScreen from './screens/DiaryModify_screen';
 import RecapScreen from './screens/recap_screen';
 import DiaryWriteScreen from './screens/DiaryWriteScreen';
@@ -56,11 +55,6 @@ export default function App() {
         <Stack.Screen
           name="SignUp" // Name used by StartScreen to navigate
           component={SignUpScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="diaryPostSample"
-          component={diaryPostSample}
           options={{ headerShown: false }}
         />
         <Stack.Screen
