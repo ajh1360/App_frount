@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Pressable
+    View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Pressable, ActivityIndicator // Added ActivityIndicator
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import PropTypes from 'prop-types';
@@ -303,9 +303,11 @@ export default function SignUpScreen({ navigation }) {
                             onPress={handleEmailCheck}
                             disabled={isCheckingEmail || !email.trim() || email.length === 0}
                         >
-                            <Text style={styles.checkButtonText}>
-                                {isCheckingEmail ? '확인 중...' : '중복 확인'}
-                            </Text>
+                            {isCheckingEmail ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Text style={styles.checkButtonText}>확인</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -393,44 +395,41 @@ const styles = StyleSheet.create({
     emailRow: {
         flexDirection: 'row',
         marginBottom: 18,
-        alignItems: 'center',
+        alignItems: 'center', // Ensures input and button are vertically aligned
     },
     emailTextInputWrapper: {
-        flex: 1,
+        flex: 1, // Takes up available space for the input field
     },
     emailInput: {
         backgroundColor: '#F6F6F6',
-        borderTopLeftRadius: 8,
-        borderBottomLeftRadius: 8,
-        paddingVertical: 15,
+        borderRadius: 25, // Pill shape
+        paddingVertical: 15, // This contributes to the height (approx 50px with fontSize 15)
         paddingHorizontal: 20,
         fontSize: 15,
         color: '#000',
         borderWidth: 1,
-        borderColor: '#E8E8E8',
-        borderRightWidth: 0,
+        borderColor: '#E8E8E8', // Border on all sides
+        // height: 50, // Can be set explicitly if paddingVertical doesn't yield desired height consistently
     },
-    emailButtonWrapper: {},
+    emailButtonWrapper: {
+        marginLeft: 8, // Adds space between the input field and the button
+    },
     checkButton: {
-        backgroundColor: '#767676',
-        borderTopRightRadius: 8,
-        borderBottomRightRadius: 8,
-        paddingVertical: 15,
-        paddingHorizontal: 15,
+        backgroundColor: '#8A8A8A', // Darker gray, closer to image
+        width: 50,                 // Fixed width for a circle
+        height: 50,                // Fixed height for a circle (should match input field's effective height)
+        borderRadius: 13,          // Makes it a circle (half of width/height)
         justifyContent: 'center',
         alignItems: 'center',
-        height: 50, 
-        borderWidth: 1,
-        borderColor: '#E8E8E8',
-        borderLeftWidth: 0,
+        // Removed paddingVertical, paddingHorizontal, borderWidth, borderColor from original as size is fixed
     },
     checkButtonDisabled: {
-        backgroundColor: '#BDBDBD',
+        backgroundColor: '#BDBDBD', // Lighter gray for disabled state
     },
     checkButtonText: {
         color: '#fff',
-        fontSize: 13,
-        fontWeight: '500',
+        fontSize: 14, // Adjusted for better fit and appearance
+        fontWeight: 'bold', // Make text bolder as in image
     },
     signUpProcessButton: {
         backgroundColor: '#000',
@@ -449,7 +448,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)', // 반투명 배경
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', 
     },
     modalView: {
         margin: 20,
@@ -465,7 +464,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
-        minWidth: 300, // 모달 최소 너비
+        minWidth: 300, 
     },
     modalTitle: {
         fontSize: 20,
@@ -493,4 +492,3 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
 });
-

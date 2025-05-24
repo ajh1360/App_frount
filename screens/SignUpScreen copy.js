@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView
+    View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Pressable
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import PropTypes from 'prop-types';
@@ -22,102 +22,252 @@ export default function SignUpScreen({ navigation }) {
     const [phone, setPhoneNumber] = useState('');
     const [birthDate, setBirthDate] = useState('');
 
-    const handleSignUp = async () => {
-    if (!name.trim()) {
-        Alert.alert('오류', '이름을 입력해주세요.');
-        return;
-    }
-    if (!email.trim()) {
-        Alert.alert('오류', '이메일을 입력해주세요.');
-        return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        Alert.alert('오류', '올바른 이메일 형식이 아닙니다.');
-        return;
-    }
-    if (password.length < 6 || password.length > 10) {
-        Alert.alert('오류', '비밀번호는 6~10자리로 입력해주세요.');
-        return;
-    }
-    if (password !== confirmPassword) {
-        Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
-        return;
-    }
-    if (!phone.includes('-') || phone.length < 10) {
-        Alert.alert('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
-        return;
-    }
-    if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
-    Alert.alert('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
-    return;
-}
-    const yearDigits = birthDate.substring(0, 2);      // yearDigits 정의
-    const month = birthDate.substring(2, 4);         // month 정의
-    const day = birthDate.substring(4, 6);           // day 정의
+    // 이메일 중복 확인 관련 상태
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+    const [isEmailVerified, setIsEmailVerified] = useState(false);
 
-    const currentYearLastTwoDigits = new Date().getFullYear() % 100;
-    // yearPrefix 계산 시 yearDigits 사용 (이미 정의되어 있어야 함)
-    const yearPrefix = parseInt(yearDigits, 10) <= (currentYearLastTwoDigits + 5) ? '20' : '19';
+    // 커스텀 모달 관련 상태
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalMessage, setModalMessage] = useState('');
+    const [modalTitle, setModalTitle] = useState(''); // 모달 제목 추가
 
-    // formattedBirthDate 생성 시 yearDigits, month, day 사용 (이미 정의되어 있어야 함)
-    const formattedBirthDate = `${yearPrefix}${yearDigits}-${month}-${day}`;
-
-    const requestBody = {
-        name: name,
-        email,
-        password,
-        phone,
-        birthDate: formattedBirthDate,
-        role: "USER"
+    const showCustomModal = (title, message) => {
+        setModalTitle(title);
+        setModalMessage(message);
+        setModalVisible(true);
     };
 
-    console.log('Request Body to Server:', JSON.stringify(requestBody, null, 2));
+    const hideCustomModal = () => {
+        setModalVisible(false);
+        setModalTitle('');
+        setModalMessage('');
+    };
 
+    const handleEmailChange = (text) => {
+        setEmail(text);
+        setIsEmailVerified(false);
+    };
 
-    // SignUpScreen.js - handleSignUp 함수 내
-// ... (requestBody 로깅 후)
+     const handleEmailCheck = async () => {
+        if (!email.trim()) {
+            showCustomModal('알림', '이메일을 입력해주세요.');
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showCustomModal('오류', '올바른 이메일 형식이 아닙니다.');
+            return;
+        }
 
-try {
-    const response = await fetch('http://ceprj.gachon.ac.kr:60021/api/members', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-    });
+        console.log('handleEmailCheck: Started. Setting isCheckingEmail to true.');
+        setIsCheckingEmail(true);
+        setIsEmailVerified(false);
+        try {
+            const encodedEmail = encodeURIComponent(email);
+            const apiUrl = `http://ceprj.gachon.ac.kr:60021/api/auth/exist/${encodedEmail}`;
+            console.log('Email Check - API URL:', apiUrl);
+            const response = await fetch(apiUrl);
+            
+            console.log('Email Check - Response Status:', response.status);
+            console.log('Email Check - Response OK?:', response.ok);
 
-    console.log('Server Response Status:', response.status); // 서버 응답 상태 코드
-    console.log('Server Response OK?:', response.ok);       // response.ok 값 (true/false)
+            const responseText = await response.text();
+            console.log('Email Check - Response Text:', responseText);
 
-    if (!response.ok) {
-        // 에러 응답 본문 확인
-        const errData = await response.json().catch(() => ({ message: "서버 응답 JSON 파싱 실패 또는 내용 없음" })); // JSON 파싱 실패 대비
-        console.error('Server Error Data:', errData);
-        throw new Error(errData.message || `서버 오류: ${response.status}`);
-    }
+            if (response.ok) {
+                let emailExists = false;
+                let parsedData = null;
 
+                try {
+                    parsedData = JSON.parse(responseText);
+                    console.log('Email Check - Parsed JSON Data:', parsedData);
 
-    console.log('회원가입 성공 - 로그인 페이지로 이동 중');
-    navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-    });
+                    if (parsedData && typeof parsedData.exist === 'boolean') {
+                        emailExists = parsedData.exist;
+                    } else if (parsedData && typeof parsedData.exist !== 'undefined') {
+                        if (String(parsedData.exist).toLowerCase() === 'true') {
+                            emailExists = true;
+                        } else if (String(parsedData.exist).toLowerCase() === 'false') {
+                            emailExists = false;
+                        } else {
+                            showCustomModal('알림', '이메일 확인 응답이 예상치 못한 형식입니다. (exist 값 오류)');
+                            setIsEmailVerified(false);
+                            return;
+                        }
+                    } else {
+                         if (responseText.toLowerCase() === 'true') {
+                            emailExists = true;
+                         } else if (responseText.toLowerCase() === 'false') {
+                            emailExists = false;
+                         } else {
+                            showCustomModal('알림', '이메일 확인 응답 형식을 분석할 수 없습니다. ("exist" 키 부재)');
+                            setIsEmailVerified(false);
+                            return;
+                         }
+                    }
+                } catch (jsonError) {
+                    if (responseText.toLowerCase() === 'true') {
+                        emailExists = true;
+                    } else if (responseText.toLowerCase() === 'false') {
+                        emailExists = false;
+                    } else {
+                        showCustomModal('오류', '이메일 확인 중 응답 형식이 올바르지 않습니다 (텍스트도 true/false가 아님).');
+                        setIsEmailVerified(false);
+                        return;
+                    }
+                }
 
-    
-    } catch (err) {
-        console.error('회원가입 전체 오류:', err); // 전체 try-catch 블록에서 잡힌 오류
-        Alert.alert('회원가입 실패', err.message || '알 수 없는 오류가 발생했습니다.');
-    }
-};
+                if (emailExists === true) {
+                    showCustomModal('알림', '이미 사용 중인 이메일입니다.');
+                    setIsEmailVerified(false);
+                } else if (emailExists === false) {
+                    showCustomModal('알림', '사용 가능한 이메일입니다.');
+                    setIsEmailVerified(true);
+                } else {
+                    showCustomModal('오류', '이메일 확인 로직에 문제가 발생했습니다. 관리자에게 문의하세요.');
+                    setIsEmailVerified(false);
+                }
 
+            } else {
+                let errorMessage = `이메일 중복 확인 실패 (상태 코드: ${response.status})`;
+                try {
+                    const errData = JSON.parse(responseText);
+                    errorMessage = errData.message || errData.error || (responseText || errorMessage);
+                } catch (e) {
+                    if (responseText) errorMessage = responseText;
+                }
+                showCustomModal('오류', errorMessage);
+                setIsEmailVerified(false);
+            }
+        } catch (error) {
+            console.error('Email check - Outer catch error:', error.message, error.stack);
+            showCustomModal('오류', '이메일 중복 확인 중 오류가 발생했습니다. 네트워크 연결을 확인해주세요.');
+            setIsEmailVerified(false);
+        } finally {
+            console.log('handleEmailCheck: Finally block. Setting isCheckingEmail to false.');
+            setIsCheckingEmail(false);
+        }
+    };
 
+    const handleSignUp = async () => {
+        if (!name.trim()) {
+            showCustomModal('오류', '이름을 입력해주세요.');
+            return;
+        }
+        if (!email.trim()) {
+            showCustomModal('오류', '이메일을 입력해주세요.');
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showCustomModal('오류', '올바른 이메일 형식이 아닙니다.');
+            return;
+        }
+        if (!isEmailVerified) {
+            showCustomModal('알림', '이메일 중복 확인을 완료해주세요.');
+            return;
+        }
+        if (password.length < 6 || password.length > 10) {
+            showCustomModal('오류', '비밀번호는 6~10자리로 입력해주세요.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            showCustomModal('오류', '비밀번호가 일치하지 않습니다.');
+            return;
+        }
+        if (!phone.includes('-') || phone.length < 10) {
+            showCustomModal('오류', '-를 포함한 정확한 전화번호를 입력해주세요.');
+            return;
+        }
+        if (birthDate.length !== 6 || !/^\d{6}$/.test(birthDate)) {
+            showCustomModal('오류', '생년월일은 6자리 숫자로 입력해주세요 (예: 990101).');
+            return;
+        }
+        const yearDigits = birthDate.substring(0, 2);
+        const month = birthDate.substring(2, 4);
+        const day = birthDate.substring(4, 6);
 
+        const currentYearLastTwoDigits = new Date().getFullYear() % 100;
+        const yearPrefix = parseInt(yearDigits, 10) <= (currentYearLastTwoDigits + 5) ? '20' : '19';
+        const formattedBirthDate = `${yearPrefix}${yearDigits}-${month}-${day}`;
+
+        const requestBody = {
+            name: name,
+            email,
+            password,
+            phone,
+            birthDate: formattedBirthDate,
+            role: "USER"
+        };
+
+        try {
+            const response = await fetch('http://ceprj.gachon.ac.kr:60021/api/members', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({ message: "서버 응답 JSON 파싱 실패 또는 내용 없음" }));
+                showCustomModal('회원가입 실패', errData.message || `서버 오류: ${response.status}`);
+                return; // 실패 시 여기서 중단
+            }
+
+            // 회원가입 성공 시 모달을 띄우고, 확인 버튼 누르면 로그인 화면으로 이동
+            setModalTitle('성공');
+            setModalMessage('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
+            setModalVisible(true);
+            // 모달의 확인 버튼에서 navigation.reset을 처리하도록 변경
+            // navigation.reset({
+            //     index: 0,
+            //     routes: [{ name: 'Login' }],
+            // });
+        
+        } catch (err) {
+            console.error('회원가입 전체 오류:', err);
+            showCustomModal('회원가입 실패', err.message || '알 수 없는 오류가 발생했습니다.');
+        }
+    };
+
+    // 모달 확인 버튼 클릭 시 처리 (회원가입 성공 후)
+    const handleModalConfirm = () => {
+        hideCustomModal();
+        if (modalTitle === '성공' && modalMessage.includes('회원가입이 완료되었습니다')) {
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+            });
+        }
+    };
 
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
             <View style={styles.container}>
+                {/* 커스텀 모달 */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={modalVisible}
+                    onRequestClose={hideCustomModal}
+                >
+                    <Pressable style={styles.modalOverlay} onPress={hideCustomModal}>
+                        <Pressable style={styles.modalView} onPress={() => {}}>  {/* 모달 내부 클릭시 닫히지 않도록 */}
+                            <Text style={styles.modalTitle}>{modalTitle}</Text>
+                            <Text style={styles.modalMessage}>{modalMessage}</Text>
+                            <TouchableOpacity
+                                style={styles.modalButton}
+                                onPress={handleModalConfirm} // 수정된 핸들러 사용
+                            >
+                                <Text style={styles.modalButtonText}>확인</Text>
+                            </TouchableOpacity>
+                        </Pressable>
+                    </Pressable>
+                </Modal>
+
+
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                     <Icon name="chevron-back" size={28} color="#000" />
                 </TouchableOpacity>
@@ -132,7 +282,6 @@ try {
                     onChangeText={setName}
                 />
 
-                {/* Modified Email Input Structure */}
                 <View style={styles.emailRow}>
                     <View style={styles.emailTextInputWrapper}>
                         <TextInput
@@ -140,22 +289,25 @@ try {
                             placeholder="이메일"
                             placeholderTextColor="#BDBDBD"
                             value={email}
-                            onChangeText={setEmail}
+                            onChangeText={handleEmailChange}
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
                     </View>
-                    {/* <View style={styles.emailButtonWrapper}>
+                    <View style={styles.emailButtonWrapper}>
                         <TouchableOpacity 
-                            style={[styles.checkButton, isCheckingEmail && styles.checkButtonDisabled]} 
+                            style={[
+                                styles.checkButton, 
+                                (isCheckingEmail || !email.trim() || email.length === 0) && styles.checkButtonDisabled
+                            ]} 
                             onPress={handleEmailCheck}
-                            disabled={isCheckingEmail}
+                            disabled={isCheckingEmail || !email.trim() || email.length === 0}
                         >
                             <Text style={styles.checkButtonText}>
-                                {isCheckingEmail ? '확인 중...' : '확인'}
+                                {isCheckingEmail ? '확인 중...' : '중복 확인'}
                             </Text>
                         </TouchableOpacity>
-                    </View> */}
+                    </View>
                 </View>
 
                 <TextInput
@@ -238,42 +390,39 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E8E8E8'
     },
-    // Styles for the composite email input field
     emailRow: {
-    flexDirection: 'row',
-    marginBottom: 18,
+        flexDirection: 'row',
+        marginBottom: 18,
+        alignItems: 'center',
     },
     emailTextInputWrapper: {
-    flex: 1,
-    backgroundColor: '#F6F6F6',
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    justifyContent: 'center',
+        flex: 1,
     },
     emailInput: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    fontSize: 15,
-    color: '#000',
+        backgroundColor: '#F6F6F6',
+        borderTopLeftRadius: 8,
+        borderBottomLeftRadius: 8,
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        fontSize: 15,
+        color: '#000',
+        borderWidth: 1,
+        borderColor: '#E8E8E8',
+        borderRightWidth: 0,
     },
-
-// emailButtonWrapper: 버튼 영역 스타일
-    emailButtonWrapper: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 8,
-    },
-
-    // checkButton: 독립된 버튼 높이와 패딩
+    emailButtonWrapper: {},
     checkButton: {
         backgroundColor: '#767676',
-        borderRadius: 5,
-        paddingVertical: 10,
+        borderTopRightRadius: 8,
+        borderBottomRightRadius: 8,
+        paddingVertical: 15,
         paddingHorizontal: 15,
-        minHeight: 45, // 버튼 높이를 고정
         justifyContent: 'center',
+        alignItems: 'center',
+        height: 50, 
+        borderWidth: 1,
+        borderColor: '#E8E8E8',
+        borderLeftWidth: 0,
     },
     checkButtonDisabled: {
         backgroundColor: '#BDBDBD',
@@ -295,4 +444,53 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)', // 반투명 배경
+    },
+    modalView: {
+        margin: 20,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 35,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        minWidth: 300, // 모달 최소 너비
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        textAlign: 'center',
+    },
+    modalMessage: {
+        marginBottom: 20,
+        textAlign: 'center',
+        fontSize: 16,
+        lineHeight: 24,
+    },
+    modalButton: {
+        backgroundColor: '#000',
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        elevation: 2,
+    },
+    modalButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        fontSize: 16,
+    },
 });
+
