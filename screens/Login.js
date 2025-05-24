@@ -134,8 +134,7 @@ export default function LoginScreen({ navigation }) {
                 <Text style={styles.rememberText}>Remember Me</Text>
             </View>
 
-            <Text style={styles.findText}>PW 찾기 | ID 찾기</Text>
-
+           
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
                 <Text style={styles.loginButtonText}>로그인</Text>
             </TouchableOpacity>

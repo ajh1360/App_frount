@@ -319,7 +319,7 @@ export default function MainHome({ route }) {
                         setIsActionModalVisible(true);
                       }}
                     >
-                      <Text style={styles.diaryButtonText}>작업 선택하기</Text>
+                      <Text style={styles.diaryButtonText}>이어서 쓰기</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -407,7 +407,7 @@ export default function MainHome({ route }) {
                         <Text style={modalStyles.modalButtonText}>이어서 쓰기</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={[modalStyles.modalButton, modalStyles.deleteButton]} onPress={handleModalDeleteAndWriteNew}>
-                        <Text style={modalStyles.modalButtonText}>지우고 새로 쓰기</Text>
+                        <Text style={modalStyles.modalButtonText}>다시 쓰기</Text>
                       </TouchableOpacity>
                       {/* <TouchableOpacity style={[modalStyles.modalButton, modalStyles.cancelButton]} onPress={handleModalCancel}>
                         <Text style={modalStyles.modalButtonText}>취소</Text>

@@ -248,14 +248,11 @@ export default function DiaryWriteScreen() {
     if (isConvertingVoice) return;
 
     setIsConvertingVoice(true);
-    // 사용자에게 즉각적인 피드백 (ActivityIndicator가 보이겠지만, 추가적인 Alert도 가능)
-    // Alert.alert("음성 변환 중", "음성을 텍스트로 변환하고 있습니다. 잠시만 기다려주세요...");
-
     try {
       const convertedText = await convertVoiceToText(recordedURI);
       setContent(convertedText);
       setRecordedURI(null); // 변환 성공 시 녹음된 URI는 비움
-      Alert.alert('변환 완료', '음성이 텍스트로 변환되었습니다. 내용을 확인하고 저장하세요.');
+      Alert.alert('변환 완료', '햄식이가 변환해준 내용이 마음에 드시나요?');
     } catch (error) {
       console.error('handleConvertAndSetText 오류:', error);
       Alert.alert('변환 실패', error.message || '음성을 텍스트로 변환하는 중 오류가 발생했습니다.');
@@ -501,11 +498,10 @@ export default function DiaryWriteScreen() {
                       <MaterialIcons name="transform" size={20} color="white" style={{ marginRight: 8 }} />
                     )}
                     <Text style={styles.convertToTextButtonText}>
-                      {isConvertingVoice ? '변환 중...' : '텍스트로 변환'}
+                      {isConvertingVoice ? '변환 중...' : '햄식이가 바꿔줘요'}
                     </Text>
                   </TouchableOpacity>
                 </View>
-                // --- 여기까지 수정 ---
               ) : (
                 <TextInput
                   style={[styles.diaryText, { marginBottom: 30 }]}
@@ -551,7 +547,7 @@ export default function DiaryWriteScreen() {
               (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI)) && { color: "#FFFFFF" } 
             ]}
           >
-            {isRecording ? '녹음 중지' : recordedURI ? '녹음 변경' : '음성으로 작성'}
+            {isRecording ? '녹음 중지' : recordedURI ? '녹음 변경' : '햄식이가 들어줘요'}
           </Text>
         </TouchableOpacity>
 
