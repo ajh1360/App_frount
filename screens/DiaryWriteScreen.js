@@ -179,25 +179,26 @@ export default function DiaryWriteScreen() {
   };
 
   const convertVoiceToText = async (voiceUri) => {
-    // ... (기존 convertVoiceToText 로직 유지)
     const formData = new FormData();
     const fileName = `recording-${Date.now()}.m4a`;
-    const fileType = Platform.OS === 'ios' ? 'audio/m4a' : (Platform.OS === 'android' ? 'audio/m4a' : 'audio/m4a');
+    // Platform.OS === 'android' ? 'audio/m4a' : 'audio/x-m4a' 등 MIME 타입 확인 필요할 수 있음
+    // 일반적으로 'audio/m4a'가 잘 동작하지만, 서버 요구사항에 따라 다를 수 있음.
+    const fileType = 'audio/m4a'; 
     
     console.log('Preparing FormData for voice-to-text:');
     console.log('Original voiceUri:', voiceUri);
     if (!voiceUri || typeof voiceUri !== 'string' || !voiceUri.startsWith('file://')) {
-    console.error('Invalid or unexpected voiceUri format!');
-    Alert.alert('오류', '음성 파일 경로가 올바르지 않습니다.');
-    throw new Error('Invalid voice URI'); // 여기서 중단하거나 적절히 처리
-  }
-  console.log('fileName:', fileName);
-  console.log('fileType:', fileType);
+      console.error('Invalid or unexpected voiceUri format!');
+      Alert.alert('오류', '음성 파일 경로가 올바르지 않습니다.');
+      throw new Error('Invalid voice URI');
+    }
+    console.log('fileName:', fileName);
+    console.log('fileType:', fileType);
 
     formData.append('file', {
       uri: voiceUri,
       name: fileName,
-      type: fileType,
+      type: fileType, // 서버가 어떤 타입을 기대하는지 확인 (예: audio/mpeg, audio/aac 등도 가능)
     });
 
     try {
@@ -206,7 +207,10 @@ export default function DiaryWriteScreen() {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+            // 'Content-Type': 'application/json' // 이 줄을 제거하거나 주석 처리합니다.
+            // FormData를 사용할 때는 Content-Type을 fetch가 자동으로 설정하도록 둡니다.
+            // 명시적으로 설정해야 한다면, 'multipart/form-data' 여야 하지만,
+            // fetch가 body가 FormData일 때 자동으로 boundary와 함께 설정해줍니다.
           },
         body: formData,
       });
@@ -228,10 +232,13 @@ export default function DiaryWriteScreen() {
       }
     } catch (err) {
       console.error('convertVoiceToText 함수 내에서 오류 발생:', err);
-      throw err;
+      // err.message에 이미 상세 내용이 있을 수 있으므로 그대로 throw
+      throw err; 
     }
   };
 
+
+  
   // "텍스트로 변환" 버튼 핸들러 함수 추가
   const handleConvertAndSetText = async () => {
     if (!recordedURI) {
