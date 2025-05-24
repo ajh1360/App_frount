@@ -44,6 +44,7 @@ export default function DiaryWriteScreen() {
   const [isLoadingDiary, setIsLoadingDiary] = useState(false);
   const [currentDiaryId, setCurrentDiaryId] = useState(initialTempDiaryId || null);
   const [isConvertingVoice, setIsConvertingVoice] = useState(false); // 음성 변환 로딩 상태 추가
+  const [displayFileName, setDisplayFileName] = useState('');
 
   const BASE_URL = 'http://ceprj.gachon.ac.kr:60021';
 
@@ -133,12 +134,15 @@ export default function DiaryWriteScreen() {
     }
   };
 
+  
+
   const stopRecording = async () => {
     if (!recording) return;
     try {
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
       setRecordedURI(uri);
+      setDisplayFileName("내 소중한 기록.m4a");
       setRecording(undefined);
       setIsRecording(false);
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
@@ -481,7 +485,7 @@ export default function DiaryWriteScreen() {
                   <View style={styles.audioInfo}>
                     <MaterialIcons name="graphic-eq" size={24} color="#3C5741" style={{ marginRight: 10 }} />
                     <Text style={styles.audioFileName} numberOfLines={1}>
-                      {recordedURI.split('/').pop()}
+                      {displayFileName}
                     </Text>
                     <TouchableOpacity onPress={handleDeleteRecording} disabled={isConvertingVoice}>
                       <MaterialIcons name="delete" size={24} color={isConvertingVoice ? "#B0B0B0" : "#D32F2F"} />
