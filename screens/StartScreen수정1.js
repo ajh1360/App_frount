@@ -35,10 +35,10 @@ export default function StartScreen({ navigation }) {
             <View style={styles.mainContentSection}>
                 <Text style={styles.mainCatchphrase}>오늘 하루, 어떤 기분이었나요?</Text>
                 <Text style={styles.subCatchphrase}>
-                    일기를 쓰는 것만으로{"\n"}
-                    내 심층 감정 흐름을 분석하고{"\n"}
-                    우울 증상을 조기에 감지합니다.{"\n"}
-                    나를 더 잘 이해하는 공간, Echo Log
+                    당신의 일기를 AI가 함께 읽고,{"\n"}
+                    감정의 작은 변화도 놓치지 않아요.{"\n"}
+                    우울증 조기 감지를 위한{"\n"}
+                    당신만의 감정 공간, Echo Log
                 </Text>
             </View>
 
