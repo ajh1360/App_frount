@@ -15,7 +15,6 @@ import RecordingImage from '../assets/recode.png';
 import HamsterLoadingCharImage from '../assets/hamster_loading_char.png'; 
 
 const RECORDING_OPTIONS_M4A = {
-  // ... (기존 옵션 유지)
   isMeteringEnabled: true,
   android: {
     extension: '.m4a',
@@ -46,13 +45,16 @@ export default function DiaryWriteScreen() {
   const [recordedURI, setRecordedURI] = useState(null);
   const [isLoadingDiary, setIsLoadingDiary] = useState(false);
   const [currentDiaryId, setCurrentDiaryId] = useState(initialTempDiaryId || null);
-  const [isConvertingVoice, setIsConvertingVoice] = useState(false); // 이 상태를 모달 visible에 사용
+  const [isConvertingVoice, setIsConvertingVoice] = useState(false); 
   const [displayFileName, setDisplayFileName] = useState('');
+
+  // --- 새로운 상태 변수 추가 ---
+  const [registrationCompleteModalVisible, setRegistrationCompleteModalVisible] = useState(false);
+  const [confirmNavParams, setConfirmNavParams] = useState(null); // DiaryConfirm으로 전달할 파라미터 저장
 
   const BASE_URL = 'http://ceprj.gachon.ac.kr:60021';
 
   const loadTemporaryDiary = useCallback(async (diaryId) => {
-    // ... (기존 로직 유지)
     if (!diaryId) return;
     setIsLoadingDiary(true);
     try {
@@ -180,24 +182,19 @@ export default function DiaryWriteScreen() {
         return;
     }
     setRecordedURI(null);
-    setDisplayFileName(''); // 파일 이름도 초기화
+    setDisplayFileName('');
   };
 
   const convertVoiceToText = async (voiceUri) => {
-    // ... (기존 convertVoiceToText 함수 로직은 동일)
     const formData = new FormData();
     const fileName = `recording-${Date.now()}.m4a`;
     const fileType = 'audio/m4a'; 
     
-    console.log('Preparing FormData for voice-to-text:');
-    console.log('Original voiceUri:', voiceUri);
     if (!voiceUri || typeof voiceUri !== 'string' || !voiceUri.startsWith('file://')) {
       console.error('Invalid or unexpected voiceUri format!');
       Alert.alert('오류', '음성 파일 경로가 올바르지 않습니다.');
       throw new Error('Invalid voice URI');
     }
-    console.log('fileName:', fileName);
-    console.log('fileType:', fileType);
 
     formData.append('file', {
       uri: voiceUri,
@@ -222,8 +219,6 @@ export default function DiaryWriteScreen() {
       }
 
       const result = await response.json();
-      console.log('음성 변환 결과:', result);
-
       if (result && typeof result.text === 'string') {
         return result.text;
       } else {
@@ -241,30 +236,25 @@ export default function DiaryWriteScreen() {
       Alert.alert("오류", "변환할 음성 파일이 없습니다.");
       return;
     }
-    if (isConvertingVoice) return; // 이미 변환 중이면 중복 실행 방지
+    if (isConvertingVoice) return;
 
-    setIsConvertingVoice(true); // 모달 띄우기 시작
+    setIsConvertingVoice(true);
     try {
       const convertedText = await convertVoiceToText(recordedURI);
       setContent(convertedText);
       setRecordedURI(null); 
-      setDisplayFileName(''); // 변환 성공 시 파일 이름도 비움
-      Alert.alert('변환 완료', '햄식이가 변환해준 내용이 마음에 드시나요?');
+      setDisplayFileName('');
+      // Alert.alert('변환 완료', '햄식이가 변환해준 내용이 마음에 드시나요?');
     } catch (error) {
       console.error('handleConvertAndSetText 오류:', error);
       Alert.alert('변환 실패', error.message || '음성을 텍스트로 변환하는 중 오류가 발생했습니다.');
     } finally {
-      setIsConvertingVoice(false); // 모달 닫기
+      setIsConvertingVoice(false);
     }
   };
 
   const handleTemporarySave = async (fromSubmit = false) => {
-    // ... (기존 handleTemporarySave 로직 대부분 유지)
-    // 이 함수 내에서 setIsConvertingVoice(true/false)를 호출하는 부분들이
-    // 자동으로 모달을 제어하게 됩니다.
-
     if (isConvertingVoice) {
-      // Alert.alert("알림", "음성 변환 중입니다. 잠시 후 다시 시도해주세요."); // 모달이 이미 떠있으므로 중복 알림 필요 없을 수 있음
       return { success: false };
     }
     
@@ -283,7 +273,7 @@ export default function DiaryWriteScreen() {
     let sttPerformedAndNavigates = false;
 
     if (voiceToConvertUri && !diaryContent) {
-      setIsConvertingVoice(true); // STT 시작 시 모달 띄우기
+      setIsConvertingVoice(true);
       try {
         const convertedText = await convertVoiceToText(voiceToConvertUri);
         diaryContent = convertedText;
@@ -295,39 +285,26 @@ export default function DiaryWriteScreen() {
         else Alert.alert("음성 변환 완료", "음성이 텍스트로 변환되었습니다. 내용을 확인 후 다시 임시저장 또는 등록해주세요.");
         
         if (!fromSubmit) {
-            // setIsConvertingVoice(false); // STT만 한 경우, 여기서 닫으면 임시저장 API 호출 전에 모달이 닫힘. 최종 finally에서 처리.
-            return { success: true, sttJustCompleted: true }; // 이 경우엔 모달이 계속 떠있다가, 사용자가 확인 후 저장할 때 닫힘.
-                                                              // 혹은 여기서도 닫고, 다음 액션까지 기다리게 할 수 있음.
-                                                              // 현재 로직에서는 임시저장 API 전에는 닫지 않음.
+            return { success: true, sttJustCompleted: true };
         }
-
       } catch (error) {
-        // setIsConvertingVoice(false); // 오류 발생 시 모달 닫기 (finally에서 일괄 처리)
         Alert.alert('음성 변환 실패', error.message || '음성을 텍스트로 변환하는 중 오류가 발생했습니다. 텍스트로 직접 입력해주세요.');
-        if (fromSubmit) setIsConvertingVoice(false); // 제출 과정 중 실패 시 즉시 닫기
+        if (fromSubmit) setIsConvertingVoice(false);
         return { success: false };
       } 
-      // finally는 아래쪽 API 호출 후의 finally와 합쳐짐
     }
 
     if (!diaryContent) {
       Alert.alert('내용 없음', '임시 저장할 내용이 없습니다.');
-      if(isConvertingVoice) setIsConvertingVoice(false); // STT 후 내용이 없는 경우 모달 닫기
+      if(isConvertingVoice) setIsConvertingVoice(false);
       return { success: false };
     }
     
-    // 임시저장 API 호출 전 로딩 상태 (만약 필요하다면 다른 로딩 상태 사용)
-    // setIsConvertingVoice는 STT 전용이므로, 순수 텍스트 임시저장 시에는 다른 로딩 상태 사용 권장
-    // 여기서는 isConvertingVoice가 STT에만 사용된다고 가정하고, 순수 텍스트 저장 시에는 모달이 뜨지 않음.
-    // 만약 STT 후 바로 임시저장 API를 호출한다면 isConvertingVoice는 true인 상태로 넘어옴.
-
     try {
       const requestBody = {
         writtenDate: selectedDate,
         content: diaryContent,
       };
-      console.log('등록 요청 바디:', requestBody);
-      console.log('--- 일기 임시 저장 요청 (JSON) ---');
       const res = await fetch(`${BASE_URL}/api/diaries?temp=true`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -343,7 +320,6 @@ export default function DiaryWriteScreen() {
       setCurrentDiaryId(diaryId); 
 
       if (fromSubmit || sttPerformedAndNavigates) {
-        // Alert.alert('임시 저장 완료!'); // DiaryConfirm 화면에서 최종 안내
         navigation.navigate('DiaryConfirm', { diaryId, accessToken, selectedDate });
       } else {
         Alert.alert('임시 저장 완료!', '작성 중인 내용이 임시 저장되었습니다.');
@@ -356,9 +332,7 @@ export default function DiaryWriteScreen() {
       Alert.alert('임시 저장 오류', err.message);
       return { success: false };
     } finally {
-        // STT를 수행했거나, STT 과정에서 fromSubmit이 true였던 경우에만 isConvertingVoice를 여기서 false로.
-        // 순수 텍스트 임시저장 시에는 isConvertingVoice가 false였으므로 영향 없음.
-        if(isConvertingVoice) setIsConvertingVoice(false); // 모든 작업 완료 후 모달 최종 닫기
+        if(isConvertingVoice) setIsConvertingVoice(false);
     }
   };
 
@@ -368,12 +342,8 @@ export default function DiaryWriteScreen() {
 
   const handleSubmit = async () => {
     if (isConvertingVoice) {
-      // Alert.alert("알림", "음성 변환이 진행 중입니다. 잠시 후 다시 시도해주세요."); // 모달이 떠있을 것
       return;
     }
-
-    // ... (나머지 handleSubmit 로직은 거의 동일)
-    // handleTemporarySaveAndGuide 호출 시 isConvertingVoice 상태가 관리되므로 모달이 자동으로 제어됨.
 
     const currentContent = content.trim();
     const currentRecordedURI = recordedURI;
@@ -397,7 +367,6 @@ export default function DiaryWriteScreen() {
           { 
             text: "확인 후 진행", 
             onPress: () => {
-              // isConvertingVoice는 handleTemporarySaveAndGuide 내부에서 관리됨
               handleTemporarySaveAndGuide(); 
             }
           }
@@ -407,7 +376,6 @@ export default function DiaryWriteScreen() {
     }
 
     if (currentContent && !currentRecordedURI) {
-      // ... (기존 텍스트 일기 등록 로직)
       try {
         const requestBody = {
           writtenDate: dayjs(selectedDate).format('YYYY-MM-DD'),
@@ -432,8 +400,12 @@ export default function DiaryWriteScreen() {
         }
         const resJson = await response.json();
         const { diaryId } = resJson;
-        Alert.alert('일기 등록 완료!');
-        navigation.navigate('DiaryConfirm', { diaryId, accessToken, selectedDate });
+        
+        // --- 기존 Alert.alert 대신 모달 띄우도록 수정 ---
+        setConfirmNavParams({ diaryId, accessToken, selectedDate });
+        setRegistrationCompleteModalVisible(true);
+        // --- 수정 끝 ---
+
       } catch (err) {
         console.error('등록 API 호출 오류:', err);
         Alert.alert('등록 오류', err.message);
@@ -451,8 +423,6 @@ export default function DiaryWriteScreen() {
         animationType="fade"
         visible={isConvertingVoice}
         onRequestClose={() => {
-          // Android 뒤로가기 버튼으로 모달을 닫으려고 할 때의 처리
-          // 현재 변환 중이므로, 닫히지 않도록 하거나 사용자에게 알림
           Alert.alert("알림", "음성 변환이 진행 중입니다. 잠시만 기다려주세요.");
         }}
       >
@@ -468,6 +438,45 @@ export default function DiaryWriteScreen() {
         </View>
       </Modal>
 
+      {/* --- 일기 등록 완료 모달 --- */}
+      <Modal
+        transparent={true}
+        animationType="fade"
+        visible={registrationCompleteModalVisible}
+        onRequestClose={() => {
+          // Android 뒤로가기 버튼으로도 확인 버튼 누른 것과 동일하게 처리
+          setRegistrationCompleteModalVisible(false);
+          if (confirmNavParams) {
+            navigation.navigate('DiaryConfirm', confirmNavParams);
+            setConfirmNavParams(null); 
+          }
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContentView}>
+            <View style={styles.modalHeader}>
+              <Image source={HamsterLoadingCharImage} style={styles.modalHamsterImage} />
+              <Text style={styles.modalTitleText}>등록 완료!</Text>
+            </View>
+            <Text style={styles.modalMessageText}>
+              {"햄식이가 오늘의 일기를\n안전하게 보관했어요. 슝!"}
+            </Text>
+            <TouchableOpacity
+              style={styles.modalConfirmButton}
+              onPress={() => {
+                setRegistrationCompleteModalVisible(false);
+                if (confirmNavParams) {
+                  navigation.navigate('DiaryConfirm', confirmNavParams);
+                  setConfirmNavParams(null); // 파라미터 사용 후 초기화
+                }
+              }}
+            >
+              <Text style={styles.modalConfirmButtonText}>확인</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -475,11 +484,11 @@ export default function DiaryWriteScreen() {
       >
         <View style={styles.whiteBox}>
           <View style={styles.navRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} disabled={isConvertingVoice}>
+            <TouchableOpacity onPress={() => navigation.goBack()} disabled={isConvertingVoice || registrationCompleteModalVisible}>
               <Text style={styles.backButton}>{'<'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSubmit} disabled={isConvertingVoice || isLoadingDiary}>
-              <Text style={[styles.submitText, (isConvertingVoice || isLoadingDiary) && styles.disabledText]}>등록</Text>
+            <TouchableOpacity onPress={handleSubmit} disabled={isConvertingVoice || isLoadingDiary || registrationCompleteModalVisible}>
+              <Text style={[styles.submitText, (isConvertingVoice || isLoadingDiary || registrationCompleteModalVisible) && styles.disabledText]}>등록</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.metaInfoRow}>
@@ -512,19 +521,18 @@ export default function DiaryWriteScreen() {
                     <Text style={styles.audioFileName} numberOfLines={1}>
                       {displayFileName || "녹음된 파일"}
                     </Text>
-                    <TouchableOpacity onPress={handleDeleteRecording} disabled={isConvertingVoice}>
-                      <MaterialIcons name="delete" size={24} color={isConvertingVoice ? "#B0B0B0" : "#D32F2F"} />
+                    <TouchableOpacity onPress={handleDeleteRecording} disabled={isConvertingVoice || registrationCompleteModalVisible}>
+                      <MaterialIcons name="delete" size={24} color={(isConvertingVoice || registrationCompleteModalVisible) ? "#B0B0B0" : "#D32F2F"} />
                     </TouchableOpacity>
                   </View>
                   <TouchableOpacity
                     onPress={handleConvertAndSetText}
                     style={[
                         styles.convertToTextButton, 
-                        isConvertingVoice && styles.disabledButtonBackground // 모달이 떠도 버튼 비활성화 스타일 유지 가능
+                        (isConvertingVoice || registrationCompleteModalVisible) && styles.disabledButtonBackground
                     ]}
-                    disabled={isConvertingVoice} // 모달이 떠있을 땐 버튼 비활성화
+                    disabled={isConvertingVoice || registrationCompleteModalVisible}
                   >
-                    {/* 모달이 뜨므로, 버튼 내 ActivityIndicator는 선택사항. 여기서는 제거하고 텍스트만 표시 */}
                     <MaterialIcons name="transform" size={20} color="white" style={{ marginRight: 8 }} />
                     <Text style={styles.convertToTextButtonText}>
                       {'햄식이가 바꿔줘요'}
@@ -539,7 +547,7 @@ export default function DiaryWriteScreen() {
                   placeholder="오늘은 무슨일이 있었어?"
                   value={content} 
                   onChangeText={setContent}
-                  editable={!isRecording && !isConvertingVoice && !isLoadingDiary} // 변환 또는 로딩 중에는 편집 불가
+                  editable={!isRecording && !isConvertingVoice && !isLoadingDiary && !registrationCompleteModalVisible}
                 />
               )}
             </ScrollView>
@@ -553,16 +561,16 @@ export default function DiaryWriteScreen() {
             styles.bottomBarButton,
             styles.voiceRecordButton,
             isRecording ? styles.voiceRecordButtonRecording : (recordedURI ? styles.voiceRecordButtonChange : null),
-            (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary) && styles.disabledButtonBackground
+            (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary || registrationCompleteModalVisible) && styles.disabledButtonBackground
           ]}
           onPress={handleRecordToggle}
-          disabled={(!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary || isConvertingVoice}
+          disabled={(!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary || isConvertingVoice || registrationCompleteModalVisible}
         >
           <MaterialIcons
             name={isRecording ? 'stop' : (recordedURI ? 'autorenew' : 'mic')}
             size={20}
             color={
-                (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary)
+                (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary || registrationCompleteModalVisible)
                   ? "#FFFFFF" 
                   : ((isRecording || recordedURI)
                     ? "white"
@@ -573,7 +581,7 @@ export default function DiaryWriteScreen() {
               styles.bottomBarButtonText,
               styles.voiceRecordButtonText,
               (isRecording || recordedURI) && { color: "white" }, 
-              (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary) && { color: "#FFFFFF" } 
+              (isConvertingVoice || (!!content.trim() && !isRecording && !recordedURI) || isLoadingDiary || registrationCompleteModalVisible) && { color: "#FFFFFF" } 
             ]}
           >
             {isRecording ? '녹음 중지' : recordedURI ? '녹음 변경' : '햄식이가 들어줘요'}
@@ -584,22 +592,22 @@ export default function DiaryWriteScreen() {
             style={[
                 styles.bottomBarButton, 
                 styles.tempSaveButton,
-                ((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice) && styles.disabledButtonLook
+                ((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice || registrationCompleteModalVisible) && styles.disabledButtonLook
             ]}
             onPress={async () => {
-                await handleTemporarySave(false); // isConvertingVoice는 내부에서 관리됨
+                await handleTemporarySave(false);
             }}
-            disabled={(!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice } 
+            disabled={(!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice || registrationCompleteModalVisible } 
         >
           <Text style={[
               styles.bottomBarButtonText,
               styles.tempSaveButtonText,
-              ((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice) && { color: "#B0B0B0"}
+              ((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice || registrationCompleteModalVisible) && { color: "#B0B0B0"}
             ]}
           >
             임시저장
           </Text>
-          <MaterialIcons name="chevron-right" size={24} color={((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice) ? "#B0B0B0" : "#8A8A8A"} />
+          <MaterialIcons name="chevron-right" size={24} color={((!content.trim() && !recordedURI) || isLoadingDiary || isRecording || isConvertingVoice || registrationCompleteModalVisible) ? "#B0B0B0" : "#8A8A8A"} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -609,7 +617,6 @@ export default function DiaryWriteScreen() {
 const screenHeight = Dimensions.get('window').height;
 
 const styles = StyleSheet.create({
-  // ... (기존 스타일 대부분 유지) ...
   container: { 
     flex: 1,
     backgroundColor: '#E6F0E7',
@@ -622,7 +629,7 @@ const styles = StyleSheet.create({
     marginTop: 70, 
     paddingHorizontal: 20,
     paddingBottom: 40, 
-    minHeight: screenHeight * 0.8, // 화면 높이에 따라 조절
+    minHeight: screenHeight * 0.8, 
     paddingTop: 10, 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -635,16 +642,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 2,
-    paddingTop: 10, // 상단 패딩 추가
+    paddingTop: 10,
   },
   backButton: { 
     fontSize: 24,
     fontWeight: '600', 
-    padding: 10, // 클릭 영역 확보
+    padding: 10,
   },
   submitText: { 
     fontSize: 20,
-    fontWeight: 'bold', // '450' 대신 'bold' 또는 숫자 값(e.g., '600')
+    fontWeight: 'bold',
     color: '#3C5741',
     paddingHorizontal: 10,
     paddingVertical: 10, 
@@ -656,10 +663,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 14,
-    paddingLeft: 10, // 좌측 패딩 추가
+    paddingLeft: 10,
   },
   metaTextGroup: { 
-    // marginLeft: 12, // metaInfoRow에 paddingLeft를 주었으므로 제거하거나 줄임
   },
   date: { 
     fontSize: 28,
@@ -667,19 +673,19 @@ const styles = StyleSheet.create({
   },
   divider: { 
     height: 1,
-    backgroundColor: '#E0E0E0', // 약간 더 연한 색으로 변경
-    marginVertical: 20, // 마진 증가
+    backgroundColor: '#E0E0E0',
+    marginVertical: 20,
     marginHorizontal: 10,
   },
   diaryText: { 
     fontSize: 16,
-    lineHeight: 26, // 줄간격 약간 증가
+    lineHeight: 26,
     color: '#333',
-    paddingHorizontal: 8, // 패딩 약간 증가
+    paddingHorizontal: 8,
     paddingVertical: 5,
     borderWidth: 0,
     textAlignVertical: 'top',
-    minHeight: Dimensions.get('window').height * 0.3, // 최소 높이 설정
+    minHeight: Dimensions.get('window').height * 0.3,
   },
   recordingContainer: { 
     flex: 1,
@@ -689,14 +695,14 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   recordingImage: { 
-    width: 120, // 이미지 크기 증가
-    height: 120, // 이미지 크기 증가
+    width: 120,
+    height: 120,
     resizeMode: 'contain',
   },
   recordingStatusText: { 
     color: '#3C5741',
-    marginTop: 20, // 마진 증가
-    fontSize: 18, // 폰트 크기 증가
+    marginTop: 20,
+    fontSize: 18,
     fontWeight: '500',
   },
   audioPlaybackContainer: {
@@ -710,34 +716,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 15, // 패딩 증가
+    paddingVertical: 15,
     paddingHorizontal: 15,
-    backgroundColor: '#F7F7F7', // 배경색 변경
-    borderRadius: 12, // 둥근 모서리 증가
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    marginVertical: 15, // 마진 증가
-    width: '95%', // 너비 증가
+    marginVertical: 15,
+    width: '95%',
     alignSelf: 'center',
   },
   audioFileName: { 
     flex: 1,
-    fontSize: 15, // 폰트 크기 증가
+    fontSize: 15,
     color: '#333',
-    marginHorizontal: 12, // 마진 증가
+    marginHorizontal: 12,
   },
   convertToTextButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#3C5741', 
-    paddingVertical: 14, // 패딩 증가
-    paddingHorizontal: 25, // 패딩 증가
-    borderRadius: 30, // 둥근 모서리 증가
-    marginTop: 20, // 마진 증가
-    minWidth: '70%', // 너비 증가
+    paddingVertical: 14,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    marginTop: 20,
+    minWidth: '70%',
     alignSelf: 'center',
-    elevation: 3, // 그림자 약간 증가
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.22,
@@ -745,7 +751,7 @@ const styles = StyleSheet.create({
   },
   convertToTextButtonText: {
     color: 'white',
-    fontSize: 17, // 폰트 크기 증가
+    fontSize: 17,
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -753,30 +759,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#B0B0B0',
   },
   disabledButtonLook: { 
-    // color 속성 변경은 Text 컴포넌트에서 직접 하도록 변경
   },
   bottomBarContainer: { 
     flexDirection: 'row',
-    justifyContent: 'space-around', // 버튼 간격 균등하게
+    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: Platform.OS === 'ios' ? 18 : 12, // 패딩 조절
-    paddingHorizontal: 15, // 패딩 조절
-    backgroundColor: '#FFFFFF', // 배경색 변경
+    paddingVertical: Platform.OS === 'ios' ? 18 : 12,
+    paddingHorizontal: 15,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0', // 구분선 색 변경
-    paddingBottom: Platform.OS === 'ios' ? 34 : 18, // 하단 패딩(노치 고려)
+    borderTopColor: '#E0E0E0',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 18,
   },
   bottomBarButton: { 
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12, // 패딩 조절
-    paddingHorizontal: 18, // 패딩 조절
-    borderRadius: 25, // 둥근 모서리 증가
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 25,
   },
   bottomBarButtonText: { 
-    fontSize: 16, // 폰트 크기 증가
+    fontSize: 16,
     fontWeight: '500', 
-    marginLeft: 10, // 아이콘과 텍스트 간격 증가
+    marginLeft: 10,
   },
   voiceRecordButton: { 
     backgroundColor: '#E8F0E9', 
@@ -795,7 +800,7 @@ const styles = StyleSheet.create({
   },
   tempSaveButtonText: { 
     color: '#555555',
-    marginRight: 4, // 아이콘과 텍스트 간격 조절
+    marginRight: 4,
   },
   loadingContainer: {
     flex: 1,
@@ -804,26 +809,26 @@ const styles = StyleSheet.create({
     minHeight: Dimensions.get('window').height * 0.3, 
   },
   loadingText: {
-    marginTop: 15, // 마진 증가
-    fontSize: 17, // 폰트 크기 증가
+    marginTop: 15,
+    fontSize: 17,
     color: '#3C5741',
   },
 
-  // --- 모달 스타일 ---
+  // --- 모달 스타일 (기존 스타일 재활용 및 추가) ---
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)', // 반투명도 약간 증가
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20, // 좌우 패딩
+    paddingHorizontal: 20,
   },
   modalContentView: {
-    width: '90%', // 너비 조절
-    maxWidth: 340, // 최대 너비 설정
+    width: '90%',
+    maxWidth: 340,
     backgroundColor: 'white',
-    borderRadius: 25, // 첨부된 사진과 유사하게 둥글게
-    paddingVertical: 30, // 상하 패딩 증가
-    paddingHorizontal: 25, // 좌우 패딩 증가
+    borderRadius: 25,
+    paddingVertical: 30,
+    paddingHorizontal: 25,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -834,30 +839,45 @@ const styles = StyleSheet.create({
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20, // 하단 마진 증가
-    alignSelf: 'flex-start', // 좌측 정렬
+    marginBottom: 20,
+    alignSelf: 'flex-start', 
   },
   modalHamsterImage: {
-    width: 55, // 이미지 크기 조절 (첨부된 사진 참고)
-    height: 55, // 이미지 크기 조절
+    width: 55, 
+    height: 55, 
     resizeMode: 'contain',
-    marginRight: 12, // 텍스트와의 간격
+    marginRight: 12, 
   },
   modalTitleText: {
-    fontSize: 22, // 폰트 크기 증가 (첨부된 사진 참고)
+    fontSize: 22, 
     fontWeight: 'bold',
     color: '#333333',
   },
   modalMessageText: {
-    fontSize: 17, // 폰트 크기 증가 (첨부된 사진 참고)
-    color: '#4F4F4F', // 텍스트 색상 조절
+    fontSize: 17, 
+    color: '#4F4F4F', 
     textAlign: 'center',
-    lineHeight: 25, // 줄 간격 조절
-    marginBottom: 25, // ActivityIndicator와의 간격
-    paddingHorizontal: 5, // 좌우 패딩으로 텍스트가 너무 길어지지 않도록
+    lineHeight: 25, 
+    marginBottom: 25, 
+    paddingHorizontal: 5, 
   },
-  modalActivityIndicator: {
-    marginTop: 10, // 메시지와의 간격
+  modalActivityIndicator: { // 음성 변환 모달용
+    marginTop: 10, 
+  },
+  // --- 등록 완료 모달 확인 버튼 스타일 추가 ---
+  modalConfirmButton: {
+    backgroundColor: '#3C5741', 
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 20,
+    marginTop: 10, 
+    minWidth: 120, 
+    alignItems: 'center',
+  },
+  modalConfirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   }
 });
 // --- END OF FILE DiaryWriteScreen.js ---
