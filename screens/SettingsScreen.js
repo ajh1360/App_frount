@@ -4,7 +4,6 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, Platform } from
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// API 서버 주소
 const BASEURL = 'http://ceprj.gachon.ac.kr:60021';
 
 export default function SettingsScreen() {
@@ -12,7 +11,7 @@ export default function SettingsScreen() {
 
   const handleWithdrawal = async () => {
     // --- 추가된 로그 ---
-    console.log("handleWithdrawal function called"); // ★ 이 로그가 찍히는지 확인!
+    console.log("handleWithdrawal function called");
 
     Alert.alert(
       "회원 탈퇴",
@@ -26,7 +25,7 @@ export default function SettingsScreen() {
         {
           text: "탈퇴하기",
           onPress: async () => {
-            console.log("탈퇴 처리 시작..."); // Alert 내부의 "탈퇴하기" 버튼 클릭 시 로그
+            console.log("탈퇴 처리 시작...");
             try {
               const userToken = await AsyncStorage.getItem('accessToken'); 
               console.log("User Token from AsyncStorage:", userToken);
@@ -48,11 +47,11 @@ export default function SettingsScreen() {
                 },
               });
 
-              console.log("API Response Status:", response.status); // API 응답 상태 코드 로그
+              console.log("API Response Status:", response.status);
 
               if (response.ok) {
                 console.log("백엔드 탈퇴 처리 성공");
-                await AsyncStorage.removeItem('userToken');
+                await AsyncStorage.removeItem('accessToken');
                 console.log("로컬 데이터 삭제 성공");
 
                 Alert.alert("탈퇴 완료", "회원 탈퇴가 성공적으로 처리되었습니다.");
@@ -62,14 +61,14 @@ export default function SettingsScreen() {
                 });
               } else {
                 let errorMessage = `탈퇴 요청에 실패했습니다. (상태 코드: ${response.status})`;
-                let errorDataText = await response.text(); // 서버 응답을 텍스트로 먼저 받아봅니다.
-                console.log("Raw error response from server:", errorDataText); // 서버의 원본 에러 메시지 로그
+                let errorDataText = await response.text();
+                console.log("Raw error response from server:", errorDataText);
                 try {
-                  const errorData = JSON.parse(errorDataText); // 이후 JSON 파싱 시도
+                  const errorData = JSON.parse(errorDataText);
                   errorMessage = errorData.message || errorData.error || errorMessage;
                 } catch (e) {
                   console.warn("Error parsing error response as JSON, using raw text:", e);
-                  if (errorDataText) { // 원본 텍스트가 있다면 그걸 에러 메시지로 활용
+                  if (errorDataText) {
                     errorMessage = errorDataText;
                   }
                 }
@@ -81,7 +80,7 @@ export default function SettingsScreen() {
               let displayError = "탈퇴 처리 중 문제가 발생했습니다.";
               if (error.message && error.message.includes('Network request failed')) {
                   displayError += " 네트워크 연결을 확인해주세요.";
-                  if (Platform.OS === 'android' && API_BASE_URL.startsWith('http://') && !API_BASE_URL.includes('localhost') && !API_BASE_URL.includes('10.0.2.2')) {
+                  if (Platform.OS === 'android' && BASEURL.startsWith('http://') && !BASEURL.includes('localhost') && !BASEURL.includes('10.0.2.2')) {
                       displayError += "\n(Android에서 http 통신을 위해서는 AndroidManifest.xml에 usesCleartextTraffic=true 설정이 필요할 수 있습니다.)";
                   }
               } else if (error instanceof TypeError && error.message.includes('cannot parse')) {
@@ -97,25 +96,32 @@ export default function SettingsScreen() {
     );
   };
 
+  // 공지사항 화면으로 이동하는 함수
+  const navigateToAnnouncements = () => {
+    // 이 함수는 "공지사항" 메뉴를 눌렀을 때만 호출됩니다.
+    navigation.navigate('Announcements'); 
+  };
+
   return (
     <View style={styles.container}>
-      {/* 상단 헤더 */}
+      {/* 상단 헤더: "설정" 화면의 헤더입니다. */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backArrow}>{'<'}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>설정</Text>
-        <View style={{ width: 30 }} />{/* for symmetry */}
+        <View style={{ width: 30 }} />
       </View>
 
-      {/* 설정 항목들 */}
+      {/* 설정 항목들: 이 항목들이 설정 화면에 표시됩니다. */}
       <TouchableOpacity style={styles.settingItem}>
         <Text style={styles.settingText}>알림 설정</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.settingItem}>
         <Text style={styles.settingText}>계정 관리</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.settingItem}>
+      {/* "공지사항" 메뉴: 이 TouchableOpacity를 눌러야 navigateToAnnouncements가 실행됩니다. */}
+      <TouchableOpacity style={styles.settingItem} onPress={navigateToAnnouncements}>
         <Text style={styles.settingText}>공지사항</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.settingItem} onPress={handleWithdrawal}>
@@ -125,7 +131,7 @@ export default function SettingsScreen() {
       {/* 로고 */}
       <View style={styles.logoContainer}>
         <Image
-          source={require('../assets/echoLog_logo.png')}
+          source={require('../assets/echoLog_logo.png')} 
           style={styles.logoImage}
           resizeMode="contain"
         />

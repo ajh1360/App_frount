@@ -14,6 +14,7 @@ import DiaryModifyScreen from './screens/DiaryModify_screen';
 import RecapScreen from './screens/recap_screen';
 import DiaryWriteScreen from './screens/DiaryWriteScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import AnnouncementsScreen from './screens/AnnouncementsScreen'; 
 
 const Stack = createNativeStackNavigator();
 
@@ -76,6 +77,11 @@ export default function App() {
           name="Settings"
           component={SettingsScreen}
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Announcements" 
+          component={AnnouncementsScreen}
+          options={{ headerShown: false }} 
         />
       </Stack.Navigator>
     </NavigationContainer>
