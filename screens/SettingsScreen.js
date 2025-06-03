@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: '#ccc',
   },
-  backArrow: { fontSize: 24, color: '#333' },
+  backArrow: { fontSize: 24, color: '#333' , paddingTop: 25},
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   settingItem: {
     paddingVertical: 20,

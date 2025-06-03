@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
   backArrow: {
     fontSize: 24,
     color: '#333',
+    paddingTop: 25,
   },
   headerTitle: {
     fontSize: 18,
