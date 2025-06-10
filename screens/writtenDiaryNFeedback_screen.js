@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal, View, Text, Image, ScrollView, TouchableOpacity
+  Modal, View, Text, Image, ScrollView, TouchableOpacity, BackHandler, StyleSheet
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { emotionImage, emotionTypeToKorean } from '../assets/emotions.js';
 import { styles } from './styleSheet/writtenDiaryNFeedback_style.js';
+import EmotionAnalysisAlert from './emotionAlert_screen.js';
+import { BlurView } from 'expo-blur';
 
 const WrittenDiaryDetailScreen = ({ route }) => {
   const navigation = useNavigation();
-  const { diaryId, accessToken } = route.params;
+  const {
+    diaryId,
+    accessToken,
+    emotionType,
+    isDepressed: isDepressedParam,
+    showEmotionAlert,
+    showFeedbackBlur
+  } = route.params ?? {};
 
   const [diary, setDiary] = useState(null);
   const [emotion, setEmotion] = useState(null);
@@ -17,10 +26,39 @@ const WrittenDiaryDetailScreen = ({ route }) => {
   const [depression, setDepression] = useState(null);
   const [showOriginal, setShowOriginal] = useState(false);
   const [isRewriteModalVisible, setIsRewriteModalVisible] = useState(false);
+  const [showAlert, setShowAlert] = useState(showEmotionAlert ?? false);
+  const [isFeedbackBlurred, setIsFeedbackBlurred] = useState(showFeedbackBlur ?? false);
 
   useEffect(() => {
     fetchAllDiaryData();
   }, []);
+
+  useEffect(() => {
+    console.log('모달 상태:', {
+      emotionType,
+      isDepressedParam,
+      showEmotionAlert,
+      showAlert,
+    });
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!diary || !diary.writtenDate) return;
+
+      const onBackPress = () => {
+        navigation.navigate('MainHome', {
+          accessToken,
+          focusDate: diary.writtenDate,
+        });
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => backHandler.remove(); 
+    }, [diary])
+  );
 
   const fetchAllDiaryData = async () => {
     try {
@@ -52,29 +90,29 @@ const WrittenDiaryDetailScreen = ({ route }) => {
       setUserReaction(feedbackData.userReaction);
       setDepression(depressionData);
     } catch (err) {
-      console.error('❌ 통합 API 실패:', err.message);
+      console.error('통합 API 실패:', err.message);
     }
   };
 
   const updateUserReaction = async (reaction) => {
     try {
       const res = await fetch(
-          `http://ceprj.gachon.ac.kr:60021/api/diary-feedbacks/${feedback.diaryFeedbackId}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({ userReaction: reaction, content: feedback.content }),
-          }
+        `http://ceprj.gachon.ac.kr:60021/api/diary-feedbacks/${feedback.diaryFeedbackId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ userReaction: reaction, content: feedback.content }),
+        }
       );
 
       if (!res.ok) throw new Error('반응 업데이트 실패');
       setUserReaction(reaction);
-      console.log('✅ 반응 업데이트 완료:', reaction);
+      console.log(' 반응 업데이트 완료:', reaction);
     } catch (err) {
-      console.error('❌ 반응 PUT 실패:', err.message);
+      console.error(' 반응 PUT 실패:', err.message);
     }
   };
 
@@ -83,17 +121,16 @@ const WrittenDiaryDetailScreen = ({ route }) => {
   }
 
   return (
+    <>
       <ScrollView style={styles.container}>
         <View style={styles.whiteBox}>
-          {/* 상단 네비게이션 */}
           <View style={styles.navRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity onPress={() => navigation.navigate('MainHome', { accessToken, focusDate: diary.writtenDate })}>
               <Text style={styles.backButton}>{'<'}</Text>
             </TouchableOpacity>
             <Image source={require('../assets/echoLog_logo.png')} style={styles.logo} />
           </View>
 
-          {/* 감정 메타 */}
           <View style={styles.metaInfoRow}>
             <Image source={emotionImage(emotion.emotionType)} style={styles.emotionIcon} />
             <View style={styles.metaTextGroup}>
@@ -120,56 +157,77 @@ const WrittenDiaryDetailScreen = ({ route }) => {
 
           <View style={styles.divider} />
 
-          {/* 피드백 */}
           <View style={styles.feedbackCard}>
             <Image source={require('../assets/feedback.png')} style={styles.characterImage} />
             <View style={styles.feedbackBubble}>
+
+    
+              {(() => {
+                console.log('🧊 isFeedbackBlurred 상태:', isFeedbackBlurred);
+
+                if (isFeedbackBlurred) {
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      style={[StyleSheet.absoluteFillObject, { zIndex: 10 }]}
+                      onPress={() => setIsFeedbackBlurred(false)}
+                    >
+                      <BlurView intensity={80} tint="light" //백그라운드 색깔 임시
+                       style={[styles.blurredOverlay, { backgroundColor: 'rgba(230, 240, 231, 0.7)' }]}>
+                        <Text style={styles.blurredText}>
+                          AI 햄식이가 당신을 위한 {'\n'}맞춤 피드백을 준비했어요!
+                          {'\n'}눌러서 확인해보실래요? 😶‍🌫️
+                        </Text>
+                      </BlurView>
+                    </TouchableOpacity>
+                  );
+                }
+                return null;
+              })()}
+
               <Text style={styles.feedbackText}>{feedback.content}</Text>
               <View style={styles.reactionContainer}>
                 <Text style={styles.likeit}>맘에 들었나요?</Text>
                 <TouchableOpacity onPress={() => updateUserReaction('LIKE')}>
                   <Image
-                      source={
-                        userReaction === 'LIKE'
-                            ? require('../assets/dislike_like/Like_pushed.png')
-                            : require('../assets/dislike_like/Like_first.png')
-                      }
-                      style={styles.reactionIcon}
+                    source={
+                      userReaction === 'LIKE'
+                        ? require('../assets/dislike_like/Like_pushed.png')
+                        : require('../assets/dislike_like/Like_first.png')
+                    }
+                    style={styles.reactionIcon}
                   />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => updateUserReaction('DISLIKE')}>
                   <Image
-                      source={
-                        userReaction === 'DISLIKE'
-                            ? require('../assets/dislike_like/Dislike_pushed.png')
-                            : require('../assets/dislike_like/Dislike_first.png')
-                      }
-                      style={styles.reactionIcon}
+                    source={
+                      userReaction === 'DISLIKE'
+                        ? require('../assets/dislike_like/Dislike_pushed.png')
+                        : require('../assets/dislike_like/Dislike_first.png')
+                    }
+                    style={styles.reactionIcon}
                   />
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          {/* 우울 분석 */}
+
           {depression.result && (
-              <View style={styles.depressionBox}>
-                <Text style={styles.depressionTitle}>
-                  최근 14일간의 일기를 분석해봤는데,{'\n'}
-                  요즘 너무 우울해하는 것 같아 걱정돼…🥲{'\n'}
-                  전문가 상담 또는 기관의 도움을 받는 걸 추천해!
-                </Text>
-                <Text style={styles.depressionContact}>👇정신건강 위기상담전화👇{'\n'}1577-0199 또는 129</Text>
-                <Text style={styles.depressionScore}>
-                  {'\n'}최근 2주 간 일기 기반 점수{'\n'}• PHQ-9: {depression.phq9Score}점{'\n'}• GAD-7: {depression.gad7Score}점
-                </Text>
-                <Text style={styles.depressionNote}>
-                  *PHQ·GAD는 우울증 증상을 측정, 진단하는 설문지로{'\n'}인지적, 정서적, 신체적 증상의 변화를 평가함
-                </Text>
-              </View>
+            <View style={styles.depressionBox}>
+              <Text style={styles.depressionTitle}>
+                최근 14일간의 일기를 분석해봤는데,{'\n'}요즘 너무 우울해하는 것 같아 걱정돼…🥲{'\n'}전문가 상담 또는 기관의 도움을 받는 걸 추천해!
+              </Text>
+              <Text style={styles.depressionContact}>👇정신건강 위기상담전화👇{'\n'}1577-0199 또는 129</Text>
+              <Text style={styles.depressionScore}>
+                {'\n'}최근 2주 간 일기 기반 점수{'\n'}• PHQ-9: {depression.phq9Score}점{'\n'}• GAD-7: {depression.gad7Score}점
+              </Text>
+              <Text style={styles.depressionNote}>
+                *PHQ·GAD는 우울증 증상을 측정, 진단하는 설문지로{'\n'}인지적, 정서적, 신체적 증상의 변화를 평가함
+              </Text>
+            </View>
           )}
 
-          {/* 원본 보기 모달 */}
           <Modal visible={showOriginal} transparent animationType="fade">
             <View style={styles.modalOverlay}>
               <View style={styles.modalBox}>
@@ -183,7 +241,6 @@ const WrittenDiaryDetailScreen = ({ route }) => {
             </View>
           </Modal>
 
-          {/* 수정 모달 */}
           <Modal visible={isRewriteModalVisible} transparent animationType="fade">
             <View style={styles.modalOverlay}>
               <View style={styles.modalBox}>
@@ -193,14 +250,17 @@ const WrittenDiaryDetailScreen = ({ route }) => {
                   <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setIsRewriteModalVisible(false)}>
                     <Text style={styles.modalBtnText}>아니요</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalBtnConfirm} 
-                  onPress={() => {
-                    setIsRewriteModalVisible(false);
-                    navigation.navigate('DiaryModify', {
-                      diaryId,
-                      accessToken,
-                    });
-                  }}>
+                  <TouchableOpacity
+                    style={styles.modalBtnConfirm}
+                    onPress={() => {
+                      setIsRewriteModalVisible(false);
+                      navigation.navigate('DiaryModify', {
+                        diaryId,
+                        accessToken,
+                        from: 'writtenDiary',
+                      });
+                    }}
+                  >
                     <Text style={styles.modalBtnTextWhite}>할래요</Text>
                   </TouchableOpacity>
                 </View>
@@ -209,6 +269,16 @@ const WrittenDiaryDetailScreen = ({ route }) => {
           </Modal>
         </View>
       </ScrollView>
+
+      {showAlert && (
+        <EmotionAnalysisAlert
+          visible={showAlert}
+          emotionType={emotionType}
+          isDepressed={isDepressedParam}
+          onClose={() => setShowAlert(false)}
+        />
+      )}
+    </>
   );
 };
 

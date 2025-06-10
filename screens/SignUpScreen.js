@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Pressable, ActivityIndicator // Added ActivityIndicator
+    View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Pressable, ActivityIndicator 
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import PropTypes from 'prop-types';
@@ -22,14 +22,12 @@ export default function SignUpScreen({ navigation }) {
     const [phone, setPhoneNumber] = useState('');
     const [birthDate, setBirthDate] = useState('');
 
-    // 이메일 중복 확인 관련 상태
+
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
     const [isEmailVerified, setIsEmailVerified] = useState(false);
-
-    // 커스텀 모달 관련 상태
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
-    const [modalTitle, setModalTitle] = useState(''); // 모달 제목 추가
+    const [modalTitle, setModalTitle] = useState('');
 
     const showCustomModal = (title, message) => {
         setModalTitle(title);
@@ -212,18 +210,13 @@ export default function SignUpScreen({ navigation }) {
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({ message: "서버 응답 JSON 파싱 실패 또는 내용 없음" }));
                 showCustomModal('회원가입 실패', errData.message || `서버 오류: ${response.status}`);
-                return; // 실패 시 여기서 중단
+                return; 
             }
 
-            // 회원가입 성공 시 모달을 띄우고, 확인 버튼 누르면 로그인 화면으로 이동
+            
             setModalTitle('성공');
             setModalMessage('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
             setModalVisible(true);
-            // 모달의 확인 버튼에서 navigation.reset을 처리하도록 변경
-            // navigation.reset({
-            //     index: 0,
-            //     routes: [{ name: 'Login' }],
-            // });
         
         } catch (err) {
             console.error('회원가입 전체 오류:', err);
@@ -246,7 +239,7 @@ export default function SignUpScreen({ navigation }) {
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
             <View style={styles.container}>
-                {/* 커스텀 모달 */}
+           
                 <Modal
                     animationType="fade"
                     transparent={true}
@@ -254,12 +247,12 @@ export default function SignUpScreen({ navigation }) {
                     onRequestClose={hideCustomModal}
                 >
                     <Pressable style={styles.modalOverlay} onPress={hideCustomModal}>
-                        <Pressable style={styles.modalView} onPress={() => {}}>  {/* 모달 내부 클릭시 닫히지 않도록 */}
+                        <Pressable style={styles.modalView} onPress={() => {}}>  
                             <Text style={styles.modalTitle}>{modalTitle}</Text>
                             <Text style={styles.modalMessage}>{modalMessage}</Text>
                             <TouchableOpacity
                                 style={styles.modalButton}
-                                onPress={handleModalConfirm} // 수정된 핸들러 사용
+                                onPress={handleModalConfirm} 
                             >
                                 <Text style={styles.modalButtonText}>확인</Text>
                             </TouchableOpacity>
@@ -395,41 +388,39 @@ const styles = StyleSheet.create({
     emailRow: {
         flexDirection: 'row',
         marginBottom: 18,
-        alignItems: 'center', // Ensures input and button are vertically aligned
+        alignItems: 'center',
     },
     emailTextInputWrapper: {
-        flex: 1, // Takes up available space for the input field
+        flex: 1, 
     },
     emailInput: {
         backgroundColor: '#F6F6F6',
-        borderRadius: 25, // Pill shape
-        paddingVertical: 15, // This contributes to the height (approx 50px with fontSize 15)
+        borderRadius: 25, 
+        paddingVertical: 15,
         paddingHorizontal: 20,
         fontSize: 15,
         color: '#000',
         borderWidth: 1,
-        borderColor: '#E8E8E8', // Border on all sides
-        // height: 50, // Can be set explicitly if paddingVertical doesn't yield desired height consistently
+        borderColor: '#E8E8E8', 
     },
     emailButtonWrapper: {
-        marginLeft: 8, // Adds space between the input field and the button
+        marginLeft: 8, 
     },
     checkButton: {
-        backgroundColor: '#8A8A8A', // Darker gray, closer to image
-        width: 50,                 // Fixed width for a circle
-        height: 50,                // Fixed height for a circle (should match input field's effective height)
-        borderRadius: 13,          // Makes it a circle (half of width/height)
+        backgroundColor: '#8A8A8A',
+        width: 50,                 
+        height: 50,                
+        borderRadius: 13,          
         justifyContent: 'center',
         alignItems: 'center',
-        // Removed paddingVertical, paddingHorizontal, borderWidth, borderColor from original as size is fixed
     },
     checkButtonDisabled: {
-        backgroundColor: '#BDBDBD', // Lighter gray for disabled state
+        backgroundColor: '#BDBDBD', 
     },
     checkButtonText: {
         color: '#fff',
-        fontSize: 14, // Adjusted for better fit and appearance
-        fontWeight: 'bold', // Make text bolder as in image
+        fontSize: 14, 
+        fontWeight: 'bold', 
     },
     signUpProcessButton: {
         backgroundColor: '#000',
@@ -443,7 +434,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
-    // Modal Styles
     modalOverlay: {
         flex: 1,
         justifyContent: 'center',

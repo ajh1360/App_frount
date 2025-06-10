@@ -118,6 +118,7 @@ export const styles = StyleSheet.create({
       borderRadius: 20,
       borderWidth: 0.7,                
       borderColor: '#C6C6C6', 
+      position: 'relative',
     },
     feedbackText: {
       fontSize: 15,
@@ -203,7 +204,7 @@ export const styles = StyleSheet.create({
       marginHorizontal: 6,
     },
     likeit: { 
-      fontSize: 13,
+      fontSize: 11,
       color: '#C6C6C6'
 
     },
@@ -247,4 +248,23 @@ export const styles = StyleSheet.create({
       lineHeight: 16,
       textAlign: 'center',
     },
+    blurredOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+      zIndex: 10,
+    },
+    
+    blurredText: {
+      textAlign: 'center',
+      fontSize: 15,
+      fontWeight: '300',
+      color: '#333',
+      lineHeight: 24,
+      textShadowColor: '#fff',
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 2,
+    }
   });

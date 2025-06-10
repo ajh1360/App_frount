@@ -106,8 +106,6 @@ export default function RecapScreen({ route }) {
                     ]}
                   />
                 </View>
-
-                {/* ✅ 실선 + 라벨 묶기 */}
                 <View style={styles.barBaseArea}>
                   <View style={styles.barBaseLine} />
                   <Text style={styles.barLabel}>{e.label}</Text>
@@ -116,8 +114,6 @@ export default function RecapScreen({ route }) {
             );
           })}
         </View>
-
-        {/* 요약 문장 */}
         <Text style={styles.summaryText}>
           최근 14일 동안 제일 많았던 감정은{'\n'}
           <Text style={styles.highlight}>

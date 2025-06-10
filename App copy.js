@@ -3,37 +3,35 @@ import { StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import WelcomeScreen from './screens/WelcomeScreen'; 
+import SplashScreen from './screens/splash_screen';
 import MainHomeScreen from './screens/mainHome_screen';
 import WrittenDiaryDetailScreen from './screens/writtenDiaryNFeedback_screen';
 import DiaryConfirmScreen from './screens/DiaryConfirm_screen';
-import StartScreen from './screens/StartScreen';
+import StartScreen from './screens/StartScreen'; // Import the new StartScreen
 import LoginScreen from './screens/Login';
-import SignUpScreen from './screens/SignUpScreen';
+import SignUpScreen from './screens/SignUpScreen';;
 import DiaryModifyScreen from './screens/DiaryModify_screen';
 import RecapScreen from './screens/recap_screen';
 import DiaryWriteScreen from './screens/DiaryWriteScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import EmotionAnalysisAlert from './screens/emotionAlert_screen';
-import AnnouncementsScreen from './screens/AnnouncementsScreen'; 
-
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Welcome">
+      {/* Set StartScreen as the initial route */}
+      <Stack.Navigator initialRouteName="Start">
         <Stack.Screen
-          name="Welcome" 
-          component={WelcomeScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Start"
+          name="Start" // Screen name for StartScreen
           component={StartScreen}
           options={{ headerShown: false }}
         />
-
+        <Stack.Screen
+          name="Splash"
+          component={SplashScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="WrittenDiary"
           component={WrittenDiaryDetailScreen}
@@ -50,12 +48,12 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Login"
+          name="Login" // Changed from "LoginScreen" to "Login" to match StartScreen's navigation
           component={LoginScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="SignUp"
+          name="SignUp" // Name used by StartScreen to navigate
           component={SignUpScreen}
           options={{ headerShown: false }}
         />
@@ -84,13 +82,7 @@ export default function App() {
           component={EmotionAnalysisAlert}
           options={{ headerShown: false }}
         />
-        <Stack.Screen
-                  name="Announcements" 
-                  component={AnnouncementsScreen}
-                  options={{ headerShown: false }} 
-                />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
-

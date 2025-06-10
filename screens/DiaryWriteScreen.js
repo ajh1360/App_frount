@@ -1,9 +1,7 @@
-// --- START OF FILE DiaryWriteScreen.js ---
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,View,Text,TextInput,TouchableOpacity,Alert,ScrollView,Image,Platform,StatusBar,Dimensions,KeyboardAvoidingView,StyleSheet, ActivityIndicator,
-  Modal // Modal import 추가
+  Modal 
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -11,7 +9,6 @@ import { Audio } from 'expo-av';
 import dayjs from 'dayjs';
 
 import RecordingImage from '../assets/recode.png';
-// 사용자가 제공한 햄스터 캐릭터 이미지 import (파일 경로 및 이름은 실제 파일에 맞게 수정)
 import HamsterLoadingCharImage from '../assets/hamster_loading_char.png'; 
 
 const RECORDING_OPTIONS_M4A = {
@@ -48,9 +45,9 @@ export default function DiaryWriteScreen() {
   const [isConvertingVoice, setIsConvertingVoice] = useState(false); 
   const [displayFileName, setDisplayFileName] = useState('');
 
-  // --- 새로운 상태 변수 추가 ---
+
   const [registrationCompleteModalVisible, setRegistrationCompleteModalVisible] = useState(false);
-  const [confirmNavParams, setConfirmNavParams] = useState(null); // DiaryConfirm으로 전달할 파라미터 저장
+  const [confirmNavParams, setConfirmNavParams] = useState(null); 
 
   const BASE_URL = 'http://ceprj.gachon.ac.kr:60021';
 
@@ -244,7 +241,7 @@ export default function DiaryWriteScreen() {
       setContent(convertedText);
       setRecordedURI(null); 
       setDisplayFileName('');
-      // Alert.alert('변환 완료', '햄식이가 변환해준 내용이 마음에 드시나요?');
+    
     } catch (error) {
       console.error('handleConvertAndSetText 오류:', error);
       Alert.alert('변환 실패', error.message || '음성을 텍스트로 변환하는 중 오류가 발생했습니다.');
@@ -401,10 +398,10 @@ export default function DiaryWriteScreen() {
         const resJson = await response.json();
         const { diaryId } = resJson;
         
-        // --- 기존 Alert.alert 대신 모달 띄우도록 수정 ---
+    
         setConfirmNavParams({ diaryId, accessToken, selectedDate });
         setRegistrationCompleteModalVisible(true);
-        // --- 수정 끝 ---
+
 
       } catch (err) {
         console.error('등록 API 호출 오류:', err);
@@ -444,7 +441,6 @@ export default function DiaryWriteScreen() {
         animationType="fade"
         visible={registrationCompleteModalVisible}
         onRequestClose={() => {
-          // Android 뒤로가기 버튼으로도 확인 버튼 누른 것과 동일하게 처리
           setRegistrationCompleteModalVisible(false);
           if (confirmNavParams) {
             navigation.navigate('DiaryConfirm', confirmNavParams);
@@ -467,7 +463,7 @@ export default function DiaryWriteScreen() {
                 setRegistrationCompleteModalVisible(false);
                 if (confirmNavParams) {
                   navigation.navigate('DiaryConfirm', confirmNavParams);
-                  setConfirmNavParams(null); // 파라미터 사용 후 초기화
+                  setConfirmNavParams(null); 
                 }
               }}
             >
@@ -814,7 +810,7 @@ const styles = StyleSheet.create({
     color: '#3C5741',
   },
 
-  // --- 모달 스타일 (기존 스타일 재활용 및 추가) ---
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
@@ -861,10 +857,10 @@ const styles = StyleSheet.create({
     marginBottom: 25, 
     paddingHorizontal: 5, 
   },
-  modalActivityIndicator: { // 음성 변환 모달용
+  modalActivityIndicator: { 
     marginTop: 10, 
   },
-  // --- 등록 완료 모달 확인 버튼 스타일 추가 ---
+
   modalConfirmButton: {
     backgroundColor: '#3C5741', 
     paddingVertical: 12,
@@ -880,4 +876,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   }
 });
-// --- END OF FILE DiaryWriteScreen.js ---

@@ -96,15 +96,14 @@ export default function SettingsScreen() {
     );
   };
 
-  // 공지사항 화면으로 이동하는 함수
+
   const navigateToAnnouncements = () => {
-    // 이 함수는 "공지사항" 메뉴를 눌렀을 때만 호출됩니다.
     navigation.navigate('Announcements'); 
   };
 
   return (
     <View style={styles.container}>
-      {/* 상단 헤더: "설정" 화면의 헤더입니다. */}
+ 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backArrow}>{'<'}</Text>
@@ -113,14 +112,14 @@ export default function SettingsScreen() {
         <View style={{ width: 30 }} />
       </View>
 
-      {/* 설정 항목들: 이 항목들이 설정 화면에 표시됩니다. */}
+
       <TouchableOpacity style={styles.settingItem}>
         <Text style={styles.settingText}>알림 설정</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.settingItem}>
         <Text style={styles.settingText}>계정 관리</Text>
       </TouchableOpacity>
-      {/* "공지사항" 메뉴: 이 TouchableOpacity를 눌러야 navigateToAnnouncements가 실행됩니다. */}
+
       <TouchableOpacity style={styles.settingItem} onPress={navigateToAnnouncements}>
         <Text style={styles.settingText}>공지사항</Text>
       </TouchableOpacity>
@@ -141,7 +140,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white', paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: 'white', paddingHorizontal: 20, paddingTop:40 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -149,8 +148,9 @@ const styles = StyleSheet.create({
     height: 60,
     borderBottomWidth: 0.5,
     borderBottomColor: '#ccc',
+    
   },
-  backArrow: { fontSize: 24, color: '#333' , paddingTop: 25},
+  backArrow: { fontSize: 24, color: '#333', },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   settingItem: {
     paddingVertical: 20,

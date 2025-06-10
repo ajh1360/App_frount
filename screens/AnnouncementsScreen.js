@@ -116,6 +116,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+    paddingTop:40,
   },
   containerCentered: {
     flex: 1,
@@ -135,7 +136,6 @@ const styles = StyleSheet.create({
   backArrow: {
     fontSize: 24,
     color: '#333',
-    paddingTop: 25,
   },
   headerTitle: {
     fontSize: 18,

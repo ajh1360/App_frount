@@ -57,7 +57,7 @@ export const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'flex-end',
     marginTop: 20,
-    marginBottom: 1, // ✅ bar 아래 라벨 공간 확보
+    marginBottom: 1, 
     position: 'relative',
     alignItems: 'center',
   },
@@ -82,7 +82,7 @@ export const styles = StyleSheet.create({
     marginBottom: 2,
   },
 
-  // ✅ 라벨 아래만 보여줄 때 (실선 대신 라벨 스타일 강조)
+
   barLabel: {
     fontSize: 14,
     color: '#4A715A',
@@ -91,8 +91,8 @@ export const styles = StyleSheet.create({
     borderColor: '#D0D0D0',
     paddingTop: 7,
     paddingBottom:4,
-    width: 40, // ✅ 선 길이 고정 (또는 '100%')
-    textAlign: 'center', // ✅ 가운데 정렬 유지
+    width: 40,
+    textAlign: 'center', 
   },
 
   summaryText: {

@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, Image, TouchableWithoutFeedback, Keyboard, Alert, Modal, StyleSheet as ModalStyleSheet // Modal, Alert 추가
+  View, Text, TouchableOpacity, Image, TouchableWithoutFeedback, Keyboard, Alert, Modal, StyleSheet as ModalStyleSheet 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
-import { styles } from './styleSheet/mainHome_style'; // 기존 스타일
+import { styles } from './styleSheet/mainHome_style'; 
 import { emotionImage, emotionTypeToKorean } from '../assets/emotions';
 import logoutIcon from '../assets/nav/logout_logo.png';
 import recapIcon from '../assets/nav/recap_logo.png';
@@ -22,12 +22,12 @@ export default function MainHome({ route }) {
   const [diaryData, setDiaryData] = useState([]);
   const [diaryDetailMap, setDiaryDetailMap] = useState({});
 
-  // 모달 상태
+ 
   const [isActionModalVisible, setIsActionModalVisible] = useState(false);
-  const [selectedDiaryForAction, setSelectedDiaryForAction] = useState(null); // { diary, dateStr }
+  const [selectedDiaryForAction, setSelectedDiaryForAction] = useState(null); 
 
   const fetchDiaryListFor = useCallback(async (targetDate, isRefresh = false) => {
-    // console.log(`[API] Fetching diaries for: ${targetDate.format('YYYY-MM')}, Refresh: ${isRefresh}`);
+  
     try {
       const res = await fetch(
         `http://ceprj.gachon.ac.kr:60021/api/diaries?year=${targetDate.year()}&month=${targetDate.month() + 1}`,
@@ -42,7 +42,7 @@ export default function MainHome({ route }) {
          throw new Error(errorData.message || `서버 응답: ${res.status}`);
       }
       const data = await res.json();
-      // console.log('[API Success] Fetched diary data:', JSON.stringify(data.diaries, null, 2));
+
       setDiaryData(data.diaries || []);
       if (isRefresh) {
           setDiaryDetailMap({});
@@ -55,15 +55,13 @@ export default function MainHome({ route }) {
       }
     } catch (err) {
       console.error('❌ diary list (fetch for target) error:', err.message);
-      // Alert.alert("오류", `일기 목록을 가져오는 중 오류가 발생했습니다: ${err.message}`); // 기본 Alert 문제로 주석 처리 또는 다른 알림 방식으로 대체
-      console.log("오류: 일기 목록을 가져오는 중 오류가 발생했습니다:", err.message); // 콘솔 로그로 대체
+      console.log("오류: 일기 목록을 가져오는 중 오류가 발생했습니다:", err.message);
       setDiaryData([]);
     }
   }, [accessToken, selectedDate]);
 
   useFocusEffect(
     useCallback(() => {
-      // console.log("MainHome focused or route params changed:", route.params);
       const shouldRefreshForSpecificDate = route.params?.selectedDateForUpdate && route.params.selectedDateForUpdate !== selectedDate;
       const shouldRefreshCurrentMonth = route.params?.diaryUpdated;
 
@@ -114,7 +112,7 @@ export default function MainHome({ route }) {
       const data = await res.json();
       setDiaryDetailMap((prev) => ({ ...prev, [diaryId]: data }));
     } catch (err) {
-      console.error('❌ diary detail error:', err.message);
+      console.error(' diary detail error:', err.message);
     }
   };
 
@@ -147,7 +145,7 @@ export default function MainHome({ route }) {
         routes: [{ name: 'Login' }],
       });
     } catch (error) {
-      console.error('❌ 로그아웃 실패:', error);
+      console.error('로그아웃 실패:', error);
     }
   };
 
@@ -169,7 +167,6 @@ export default function MainHome({ route }) {
     }
   };
 
-  // --- 모달 액션 핸들러 ---
   const handleModalContinue = () => {
     if (!selectedDiaryForAction) return;
     const { diary, dateStr } = selectedDiaryForAction;
@@ -201,17 +198,17 @@ export default function MainHome({ route }) {
                 throw new Error(errorData.message || `삭제 실패: ${response.status}`);
             }
             console.log("임시 저장된 일기가 삭제되었습니다.");
-            fetchDiaryListFor(currentDate, true); // 달력 목록 새로고침
-            navigation.navigate('DiaryWriteScreen', { // 일기 작성 화면으로 이동
+            fetchDiaryListFor(currentDate, true); 
+            navigation.navigate('DiaryWriteScreen', { 
                 selectedDate: dateStr,
                 accessToken: accessToken,
-                // tempDiaryId는 전달하지 않음 (새로 작성)
+                
             });
         } catch (err) {
             console.error("임시 일기 삭제 오류:", err);
             console.log("오류:", err.message || "삭제 중 오류가 발생했습니다.");
-            // 사용자에게 오류 알림 (예: 커스텀 알림 또는 간단한 텍스트 표시)
-            Alert.alert("오류", err.message || "삭제 중 오류가 발생했습니다."); // 이 Alert도 문제가 될 수 있으므로, 필요시 다른 방식으로 대체
+       
+            Alert.alert("오류", err.message || "삭제 중 오류가 발생했습니다."); 
         } finally {
             setIsActionModalVisible(false);
             setSelectedDiaryForAction(null);
@@ -224,7 +221,7 @@ export default function MainHome({ route }) {
   const handleModalCancel = () => {
     console.log("[Modal Action] 취소 선택됨");
     if (selectedDiaryForAction) {
-        // "취소" 시에는 하단에 해당 날짜의 임시저장 카드 정보를 보여주기 위해 selectedDate 설정
+
         setSelectedDate(selectedDiaryForAction.dateStr);
     }
     setIsActionModalVisible(false);
@@ -312,9 +309,6 @@ export default function MainHome({ route }) {
                     <TouchableOpacity
                       style={styles.diaryButton}
                       onPress={() => {
-                        // 이 카드는 모달에서 "취소"를 눌렀을 때만 보이므로,
-                        // 클릭 시 다시 모달을 띄우거나, 바로 이어쓰기로 이동 가능.
-                        // 여기서는 다시 모달을 띄워 사용자에게 선택권을 줌.
                         setSelectedDiaryForAction({ diary, dateStr: selectedDate });
                         setIsActionModalVisible(true);
                       }}
@@ -409,9 +403,6 @@ export default function MainHome({ route }) {
                       <TouchableOpacity style={[modalStyles.modalButton, modalStyles.deleteButton]} onPress={handleModalDeleteAndWriteNew}>
                         <Text style={modalStyles.modalButtonText}>다시 쓰기</Text>
                       </TouchableOpacity>
-                      {/* <TouchableOpacity style={[modalStyles.modalButton, modalStyles.cancelButton]} onPress={handleModalCancel}>
-                        <Text style={modalStyles.modalButtonText}>취소</Text>
-                      </TouchableOpacity> */}
                     </View>
                   </View>
                 </TouchableWithoutFeedback>
@@ -453,8 +444,8 @@ const modalStyles = ModalStyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: '90%', // 가로로 배치된 버튼들을 위해 너비 약간 조정
-    maxWidth: 400, // 큰 화면에서의 최대 너비 설정
+    width: '90%',
+    maxWidth: 400, 
     backgroundColor: 'white',
     borderRadius: 15,
     paddingVertical: 25,
@@ -480,17 +471,17 @@ const modalStyles = ModalStyleSheet.create({
     lineHeight: 22,
   },
   modalButtonContainer: {
-    flexDirection: 'row', // 버튼들을 가로로 배열
-    justifyContent: 'space-between', // 버튼 사이에 공간 배분
-    width: '100%', // 컨테이너가 모달 내용 영역의 전체 너비를 차지하도록 설정
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    width: '100%', 
   },
   modalButton: {
-    flex: 1, // 각 버튼이 modalButtonContainer 내에서 동일한 공간을 차지
-    paddingVertical: 12, // 텍스트 가독성을 위한 세로 패딩 조정
-    paddingHorizontal: 10, // 가로 패딩
+    flex: 1, 
+    paddingVertical: 12,
+    paddingHorizontal: 10, 
     borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 5, // 버튼 사이에 약간의 가로 여백 추가
+    marginHorizontal: 5, 
   },
   continueButton: {
     backgroundColor: '#28a745',
@@ -500,8 +491,8 @@ const modalStyles = ModalStyleSheet.create({
   },
   modalButtonText: {
     color: 'white',
-    fontSize: 15, // 필요시 폰트 크기 조정
+    fontSize: 15, 
     fontWeight: '600',
-    textAlign: 'center', // 텍스트를 버튼 중앙에 정렬
+    textAlign: 'center', 
   },
 });

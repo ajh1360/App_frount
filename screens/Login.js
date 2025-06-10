@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // useEffect 추가
+import React, { useState, useEffect } from 'react'; 
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image
 } from 'react-native';
@@ -21,7 +21,7 @@ export default function LoginScreen({ navigation }) {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
-    // 컴포넌트 마운트 시 저장된 자격 증명 불러오기
+
     useEffect(() => {
         const loadCredentials = async () => {
             try {
@@ -33,29 +33,26 @@ export default function LoginScreen({ navigation }) {
                     if (storedEmail && storedPassword) {
                         setEmail(storedEmail);
                         setPassword(storedPassword);
-                        setRememberMe(true); // UI의 체크박스 상태도 업데이트
+                        setRememberMe(true); 
                     } else {
-                        // rememberMe는 true인데 이메일/비번이 없는 비정상 상황. 정리.
+           
                         await AsyncStorage.removeItem('rememberMe');
                         await AsyncStorage.removeItem('storedEmail');
                         await AsyncStorage.removeItem('storedPassword');
                         setRememberMe(false);
                     }
                 } else {
-                    // rememberMe가 false이거나 설정되지 않은 경우, 필드를 채우지 않고 rememberMe 상태를 false로 유지.
-                    // 혹시 모를 잔여 데이터 정리 (선택적)
-                    // await AsyncStorage.removeItem('storedEmail');
-                    // await AsyncStorage.removeItem('storedPassword');
+
                     setRememberMe(false);
                 }
             } catch (e) {
                 console.error('Failed to load credentials.', e);
                 Alert.alert('Error', 'Failed to load stored credentials.');
-                setRememberMe(false); // 에러 발생 시 기본값으로 설정
+                setRememberMe(false); 
             }
         };
         loadCredentials();
-    }, []); // 빈 배열: 컴포넌트 마운트 시 한 번만 실행
+    }, []); 
 
     const handleLogin = async () => {
         try {
@@ -65,25 +62,23 @@ export default function LoginScreen({ navigation }) {
                 body: JSON.stringify({ email, password }),
             });
 
-            if (!res.ok) throw new Error(`Login failed: ${res.status}`); // 템플릿 리터럴 수정
+            if (!res.ok) throw new Error(`Login failed: ${res.status}`); 
 
             const data = await res.json();
 
-            // ✅ 토큰 저장
+     
             await AsyncStorage.setItem('accessToken', data.accessToken);
 
-            // ✅ "Remember Me" 상태에 따라 이메일/비밀번호 저장 또는 삭제
             if (rememberMe) {
                 await AsyncStorage.setItem('storedEmail', email);
                 await AsyncStorage.setItem('storedPassword', password);
-                await AsyncStorage.setItem('rememberMe', 'true'); // 문자열로 저장
+                await AsyncStorage.setItem('rememberMe', 'true'); 
             } else {
                 await AsyncStorage.removeItem('storedEmail');
                 await AsyncStorage.removeItem('storedPassword');
                 await AsyncStorage.removeItem('rememberMe');
             }
 
-            // ✅ 홈 화면으로 이동
             navigation.replace('MainHome', { accessToken: data.accessToken });
         } catch (err) {
             Alert.alert('에러', err.message);
@@ -105,8 +100,8 @@ export default function LoginScreen({ navigation }) {
                 placeholderTextColor="#aaa"
                 value={email}
                 onChangeText={setEmail}
-                keyboardType="email-address" // 이메일 키보드 타입 추가
-                autoCapitalize="none" // 자동 대문자 비활성화
+                keyboardType="email-address" 
+                autoCapitalize="none" 
             />
 
             <View style={styles.passwordContainer}>
@@ -128,7 +123,7 @@ export default function LoginScreen({ navigation }) {
                     <Icon
                         name={rememberMe ? "checkmark-circle" : "ellipse-outline"}
                         size={18}
-                        color={rememberMe ? "#007AFF" : "#555"} // 체크 시 색상 변경 (선택적)
+                        color={rememberMe ? "#007AFF" : "#555"} 
                     />
                 </TouchableOpacity>
                 <Text style={styles.rememberText}>Remember Me</Text>
@@ -143,7 +138,7 @@ export default function LoginScreen({ navigation }) {
                 <Image
                     source={require('../assets/echoLog_logo.png')}
                     style={styles.logoImage}
-                    resizeMode="contain" // Image 컴포넌트의 속성으로 resizeMode 적용
+                    resizeMode="contain" 
                 />
             </View>
         </View>
@@ -186,8 +181,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 6,
-        alignSelf: 'flex-start', // 왼쪽 정렬을 위해 추가
-        paddingLeft: 5, // 약간의 왼쪽 패딩
+        alignSelf: 'flex-start', 
+        paddingLeft: 5, 
     },
     rememberText: {
         marginLeft: 8,
@@ -199,7 +194,7 @@ const styles = StyleSheet.create({
         color: '#888',
         alignSelf: 'center',
         marginBottom: 20,
-        marginTop: 10, // rememberMe 컨테이너와의 간격 조정
+        marginTop: 10, 
     },
     loginButton: {
         backgroundColor: '#000',
@@ -219,8 +214,7 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     logoImage: {
-        width: 240,
+        width: 120,
         height: 100,
-        // resizeMode="contain"은 Image 컴포넌트 속성으로 이동했습니다.
     },
 });

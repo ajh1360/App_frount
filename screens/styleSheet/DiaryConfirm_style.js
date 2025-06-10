@@ -75,8 +75,8 @@ export const styles = StyleSheet.create({
   },
   smallButton_su: {
     backgroundColor: '#787878',
-    width: '30%',                     // ✅ 버튼 너비 같게 설정
-    paddingVertical: 15,             // ✅ 높이 키움
+    width: '30%',                     //버튼 너비 같게 설정
+    paddingVertical: 15,             //높이 키움
     borderRadius: 30,
     alignItems: 'center',
     marginHorizontal: 16,
@@ -96,7 +96,7 @@ export const styles = StyleSheet.create({
   },
   centeredButtonGroup: {
     flexDirection: 'row',
-    justifyContent: 'center',  // ✅ 간격 균등 배치
+    justifyContent: 'center',  //간격 균등 배치
     marginTop: 20,
   },
 });
